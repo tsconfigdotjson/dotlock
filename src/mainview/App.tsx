@@ -100,7 +100,7 @@ function App() {
               style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
             >
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                <LockIcon className="w-3.5 h-3.5 text-white" />
+                <LockIcon size={14} className="text-white" />
               </div>
               <span className="font-semibold text-sm tracking-tight text-gray-800 dark:text-gray-200">
                 dotlock
@@ -112,7 +112,7 @@ function App() {
           <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto">
             <div>
               <div className="flex items-center gap-1.5 px-2.5 mb-2.5">
-                <FolderIcon />
+                <FolderIcon size={16} />
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                   Repos
                 </span>
@@ -132,7 +132,7 @@ function App() {
             {providers.length > 0 && (
               <div>
                 <div className="flex items-center gap-1.5 px-2.5 mb-2.5">
-                  <KeyIcon />
+                  <KeyIcon size={16} />
                   <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                     Keys
                   </span>

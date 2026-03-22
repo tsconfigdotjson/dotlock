@@ -9,9 +9,9 @@ export function ThemeToggle({
   onChange: (t: Theme) => void;
 }) {
   const options: { value: Theme; icon: React.ReactNode; label: string }[] = [
-    { value: "light", icon: <SunIcon />, label: "Light" },
-    { value: "system", icon: <MonitorIcon />, label: "System" },
-    { value: "dark", icon: <MoonIcon />, label: "Dark" },
+    { value: "light", icon: <SunIcon size={14} />, label: "Light" },
+    { value: "system", icon: <MonitorIcon size={14} />, label: "System" },
+    { value: "dark", icon: <MoonIcon size={14} />, label: "Dark" },
   ];
 
   return (

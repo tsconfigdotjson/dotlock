@@ -8,12 +8,14 @@ import { timeAgo } from "../utils";
 import {
   LockIcon,
   ChevronLeftIcon,
+  ChevronDownIcon,
   FileIcon,
   EyeIcon,
   EyeSlashIcon,
   CopyIcon,
   CheckIcon,
   PencilIcon,
+  XIcon,
 } from "./icons";
 
 function getTotalKeys(repo: Repo): number {
@@ -61,7 +63,10 @@ function EditKeyModal({
         {/* Modal header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/[0.06]">
           <div className="flex items-center gap-2.5">
-            <LockIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            <LockIcon
+              size={16}
+              className="text-gray-400 dark:text-gray-500"
+            />
             <h2 className="text-[15px] font-semibold font-mono text-gray-900 dark:text-gray-100">
               {entry.name}
             </h2>
@@ -71,19 +76,7 @@ function EditKeyModal({
             onClick={onClose}
             className="p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18 18 6M6 6l12 12"
-              />
-            </svg>
+            <XIcon size={20} />
           </button>
         </div>
 
@@ -113,7 +106,7 @@ function EditKeyModal({
                 onClick={() => setVisible(!visible)}
                 className="absolute top-2.5 right-2.5 p-1 rounded text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
               >
-                {visible ? <EyeIcon /> : <EyeSlashIcon />}
+                {visible ? <EyeIcon size={16} /> : <EyeSlashIcon size={16} />}
               </button>
             </div>
           </div>
@@ -202,7 +195,10 @@ function KeyRow({ entry }: { entry: KeyEntry }) {
       <div className="group/row rounded-lg border border-gray-100 dark:border-white/[0.06] bg-white dark:bg-white/[0.02] hover:border-gray-200 dark:hover:border-white/[0.1] transition-colors">
         {/* Key header */}
         <div className="flex items-center gap-2 px-4 py-2.5">
-          <LockIcon className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 shrink-0" />
+          <LockIcon
+            size={14}
+            className="text-gray-400 dark:text-gray-500 shrink-0"
+          />
           <span className="text-[13px] font-medium font-mono text-gray-900 dark:text-gray-100">
             {entry.name}
           </span>
@@ -220,19 +216,7 @@ function KeyRow({ entry }: { entry: KeyEntry }) {
                 }`}
               >
                 {provider || "Provider"}
-                <svg
-                  className="w-2.5 h-2.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2.5}
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="m19.5 8.25-7.5 7.5-7.5-7.5"
-                  />
-                </svg>
+                <ChevronDownIcon size={10} />
               </button>
 
               {showProviderMenu && (
@@ -283,7 +267,7 @@ function KeyRow({ entry }: { entry: KeyEntry }) {
               className="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
               title="Edit key"
             >
-              <PencilIcon />
+              <PencilIcon size={16} />
             </button>
 
             {/* Eye toggle */}
@@ -293,7 +277,7 @@ function KeyRow({ entry }: { entry: KeyEntry }) {
               className="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
               title={visible ? "Hide value" : "Reveal value"}
             >
-              {visible ? <EyeIcon /> : <EyeSlashIcon />}
+              {visible ? <EyeIcon size={16} /> : <EyeSlashIcon size={16} />}
             </button>
 
             {/* Copy button */}
@@ -303,7 +287,11 @@ function KeyRow({ entry }: { entry: KeyEntry }) {
               className="p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
               title="Copy to clipboard"
             >
-              {copied ? <CheckIcon /> : <CopyIcon />}
+              {copied ? (
+                <CheckIcon size={16} className="text-green-500" />
+              ) : (
+                <CopyIcon size={16} />
+              )}
             </button>
           </div>
         </div>
@@ -339,6 +327,52 @@ function KeyRow({ entry }: { entry: KeyEntry }) {
   );
 }
 
+function EnvFileSection({
+  filename,
+  keys,
+  defaultOpen,
+}: {
+  filename: string;
+  keys: KeyEntry[];
+  defaultOpen: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <section>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 mb-3 group w-full text-left"
+      >
+        <ChevronDownIcon
+          size={14}
+          className={`text-gray-400 dark:text-gray-500 transition-transform duration-200 ${
+            open ? "" : "-rotate-90"
+          }`}
+        />
+        <FileIcon
+          size={16}
+          className="text-gray-400 dark:text-gray-500"
+        />
+        <h2 className="text-[13px] font-semibold font-mono text-gray-500 dark:text-gray-400">
+          {filename}
+        </h2>
+        <span className="text-[11px] text-gray-400 dark:text-gray-500 tabular-nums">
+          {keys.length}
+        </span>
+      </button>
+      {open && (
+        <div className="space-y-2">
+          {keys.map((key) => (
+            <KeyRow key={key.name} entry={key} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function RepoDetail() {
   const { name } = useParams<{ name: string }>();
   const navigate = useNavigate();
@@ -358,7 +392,7 @@ export function RepoDetail() {
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
           >
-            <ChevronLeftIcon />
+            <ChevronLeftIcon size={16} />
             Back
           </button>
         </header>
@@ -385,7 +419,7 @@ export function RepoDetail() {
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
             style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
           >
-            <ChevronLeftIcon />
+            <ChevronLeftIcon size={16} />
           </button>
           <div>
             <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">
@@ -402,23 +436,13 @@ export function RepoDetail() {
       {/* Key list */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="space-y-6">
-          {repo.envFiles.map((envFile) => (
-            <section key={envFile.filename}>
-              <div className="flex items-center gap-2 mb-3">
-                <FileIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                <h2 className="text-[13px] font-semibold font-mono text-gray-500 dark:text-gray-400">
-                  {envFile.filename}
-                </h2>
-                <span className="text-[11px] text-gray-400 dark:text-gray-500 tabular-nums">
-                  {envFile.keys.length}
-                </span>
-              </div>
-              <div className="space-y-2">
-                {envFile.keys.map((key) => (
-                  <KeyRow key={key.name} entry={key} />
-                ))}
-              </div>
-            </section>
+          {repo.envFiles.map((envFile, i) => (
+            <EnvFileSection
+              key={envFile.filename}
+              filename={envFile.filename}
+              keys={envFile.keys}
+              defaultOpen={repo.envFiles.length === 1}
+            />
           ))}
         </div>
       </div>
