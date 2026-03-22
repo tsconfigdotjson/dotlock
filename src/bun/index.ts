@@ -127,11 +127,6 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
           return null;
         }
       },
-
-      dismissDrift: ({ repoName, absolutePath }) => {
-        db.updateSyncStatus(repoName, absolutePath, "synced");
-        return db.get(repoName);
-      },
     },
     messages: {},
   },

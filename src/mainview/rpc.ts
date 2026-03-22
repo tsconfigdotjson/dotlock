@@ -143,18 +143,3 @@ export async function restoreFile(
     return null;
   }
 }
-
-export async function dismissDrift(
-  repoName: string,
-  absolutePath: string,
-): Promise<Repo | null> {
-  if (!rpc) {
-    return null;
-  }
-  try {
-    return await rpc.request.dismissDrift({ repoName, absolutePath });
-  } catch (e) {
-    console.error("[dotlock] dismissDrift error:", e);
-    return null;
-  }
-}

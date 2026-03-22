@@ -39,10 +39,6 @@ export type DotlockRPC = {
         params: { repoName: string; absolutePath: string };
         response: Repo | null;
       };
-      dismissDrift: {
-        params: { repoName: string; absolutePath: string };
-        response: Repo | null;
-      };
     };
   }>;
   webview: RPCSchema<{

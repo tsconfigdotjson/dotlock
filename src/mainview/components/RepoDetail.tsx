@@ -161,13 +161,6 @@ function SyncActions({
     setActing(null);
   };
 
-  const handleDismiss = async () => {
-    const updated = await rpc.dismissDrift(repoName, envFile.absolutePath);
-    if (updated) {
-      onResolved(updated);
-    }
-  };
-
   return (
     <div className="flex items-center gap-1.5 ml-auto">
       {envFile.syncStatus === "disk_changed" && (
@@ -195,26 +188,16 @@ function SyncActions({
         </button>
       )}
       {envFile.syncStatus === "missing" && (
-        <>
-          <button
-            type="button"
-            onClick={handleRestore}
-            disabled={acting !== null}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-500/25 disabled:opacity-50 transition-colors"
-            title="Re-create the file on disk from vault"
-          >
-            <ArrowUpIcon size={11} />
-            {acting === "restore" ? "Restoring..." : "Restore to disk"}
-          </button>
-          <button
-            type="button"
-            onClick={handleDismiss}
-            className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
-            title="Acknowledge — keep in vault without restoring"
-          >
-            Dismiss
-          </button>
-        </>
+        <button
+          type="button"
+          onClick={handleRestore}
+          disabled={acting !== null}
+          className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-500/25 disabled:opacity-50 transition-colors"
+          title="Re-create the file on disk from vault"
+        >
+          <ArrowUpIcon size={11} />
+          {acting === "restore" ? "Restoring..." : "Restore to disk"}
+        </button>
       )}
     </div>
   );
