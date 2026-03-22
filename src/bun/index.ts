@@ -1,4 +1,10 @@
-import { BrowserView, BrowserWindow, Updater, Utils } from "electrobun/bun";
+import {
+  ApplicationMenu,
+  BrowserView,
+  BrowserWindow,
+  Updater,
+  Utils,
+} from "electrobun/bun";
 import { basename } from "node:path";
 import type { DotlockRPC } from "../shared/types";
 import { db } from "./db";
@@ -57,6 +63,43 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
     messages: {},
   },
 });
+
+ApplicationMenu.setApplicationMenu([
+  {
+    label: "dotlock",
+    submenu: [
+      { role: "about" },
+      { type: "separator" },
+      { role: "hide" },
+      { role: "hideOthers" },
+      { role: "showAll" },
+      { type: "separator" },
+      { role: "quit", accelerator: "q" },
+    ],
+  },
+  {
+    label: "Edit",
+    submenu: [
+      { role: "undo" },
+      { role: "redo" },
+      { type: "separator" },
+      { role: "cut" },
+      { role: "copy" },
+      { role: "paste" },
+      { role: "selectAll" },
+    ],
+  },
+  {
+    label: "Window",
+    submenu: [
+      { role: "minimize" },
+      { role: "zoom" },
+      { role: "close" },
+      { type: "separator" },
+      { role: "toggleFullScreen" },
+    ],
+  },
+]);
 
 const url = await getMainViewUrl();
 
