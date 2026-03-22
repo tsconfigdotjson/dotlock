@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 @layer base {
-	:root {
-		/*
+  :root {
+    /*
 		   SYSTEM ACCENT COLOR
 		   ====================
 		   CSS `AccentColor` keyword does NOT work here — WebKit (used by Electrobun's
@@ -24,38 +24,38 @@
 
 		   For now we default to the standard macOS blue (#007aff light / #0a84ff dark).
 		*/
-		--system-accent: #007aff;
-		--system-accent-hover: #0068d6;
-	}
+    --system-accent: #007aff;
+    --system-accent-hover: #0068d6;
+  }
 
-	.dark {
-		--system-accent: #0a84ff;
-		--system-accent-hover: #409cff;
-	}
+  .dark {
+    --system-accent: #0a84ff;
+    --system-accent-hover: #409cff;
+  }
 
-	html {
-		-webkit-font-smoothing: antialiased;
-		-moz-osx-font-smoothing: grayscale;
-	}
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-	/* Prevent text selection on UI chrome, allow on content */
-	body {
-		user-select: none;
-		-webkit-user-select: none;
-	}
+  /* Prevent text selection on UI chrome, allow on content */
+  body {
+    user-select: none;
+    -webkit-user-select: none;
+  }
 
-	/* Scrollbar styling for macOS feel */
-	::-webkit-scrollbar {
-		width: 6px;
-	}
-	::-webkit-scrollbar-track {
-		background: transparent;
-	}
-	::-webkit-scrollbar-thumb {
-		background: rgba(0, 0, 0, 0.15);
-		border-radius: 3px;
-	}
-	.dark ::-webkit-scrollbar-thumb {
-		background: rgba(255, 255, 255, 0.15);
-	}
+  /* Scrollbar styling for macOS feel */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+  }
 }
