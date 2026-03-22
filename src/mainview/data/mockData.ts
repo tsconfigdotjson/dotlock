@@ -20,6 +20,7 @@ export const PROVIDERS = [
 export const MOCK_REPOS: Repo[] = [
   {
     name: "poppy",
+    path: "/mock/poppy",
     envFiles: [
       {
         filename: ".env",
@@ -66,6 +67,7 @@ export const MOCK_REPOS: Repo[] = [
   },
   {
     name: "earlyco",
+    path: "/mock/earlyco",
     envFiles: [
       {
         filename: ".env",
@@ -155,6 +157,7 @@ export const MOCK_REPOS: Repo[] = [
   },
   {
     name: "infractl",
+    path: "/mock/infractl",
     envFiles: [
       {
         filename: ".env",

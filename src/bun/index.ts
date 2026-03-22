@@ -1,4 +1,8 @@
-import { BrowserWindow, Updater } from "electrobun/bun";
+import { BrowserView, BrowserWindow, Updater, Utils } from "electrobun/bun";
+import { basename } from "node:path";
+import type { DotlockRPC } from "../shared/types";
+import { db } from "./db";
+import { scanFolder } from "./scanner";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -20,12 +24,46 @@ async function getMainViewUrl(): Promise<string> {
   return "views://mainview/index.html";
 }
 
-// Create the main application window
+const rpc = BrowserView.defineRPC<DotlockRPC>({
+  maxRequestTime: 120_000,
+  handlers: {
+    requests: {
+      selectFolder: async () => {
+        console.log("[dotlock] selectFolder called, opening dialog...");
+        const paths = await Utils.openFileDialog({
+          startingFolder: "~/",
+          allowedFileTypes: "*",
+          canChooseFiles: false,
+          canChooseDirectory: true,
+          allowsMultipleSelection: false,
+        });
+
+        console.log("[dotlock] dialog returned:", paths);
+        const folderPath = paths[0];
+        if (!folderPath) return null;
+
+        console.log("[dotlock] scanning folder:", folderPath);
+        const envFiles = await scanFolder(folderPath);
+        console.log("[dotlock] found env files:", envFiles.length);
+        const name = basename(folderPath);
+        const repo = { name, path: folderPath, envFiles };
+        db.add(repo);
+        return repo;
+      },
+      getRepos: () => db.getAll(),
+      getRepo: ({ name }) => db.get(name),
+      removeRepo: ({ name }) => db.remove(name),
+    },
+    messages: {},
+  },
+});
+
 const url = await getMainViewUrl();
 
 new BrowserWindow({
-  title: "React + Tailwind + Vite",
+  title: "dotlock",
   url,
+  rpc,
   frame: {
     width: 900,
     height: 700,
@@ -34,4 +72,4 @@ new BrowserWindow({
   },
 });
 
-console.log("React Tailwind Vite app started!");
+console.log("dotlock started!");

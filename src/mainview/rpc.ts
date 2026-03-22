@@ -1,0 +1,76 @@
+import type { Repo } from "../shared/types";
+
+// The RPC instance is set up by initRPC() after the Electroview module loads.
+// We store the rpc object here so the typed wrapper functions can use it.
+let rpc: any = null;
+
+export async function initRPC(): Promise<void> {
+  console.log(
+    "[dotlock] initRPC: __electrobun =",
+    !!(window as any).__electrobun,
+  );
+  if (!(window as any).__electrobun) return;
+
+  try {
+    const { Electroview } = await import("electrobun/view");
+    console.log("[dotlock] Electroview loaded");
+    const rpcInstance = Electroview.defineRPC({
+      maxRequestTime: 120_000,
+      handlers: {
+        requests: {},
+        messages: {},
+      },
+    });
+    new Electroview({ rpc: rpcInstance });
+    rpc = rpcInstance;
+    console.log("[dotlock] RPC initialized successfully");
+  } catch (e) {
+    console.warn("[dotlock] Electrobun RPC not available:", e);
+  }
+}
+
+export async function selectFolder(): Promise<Repo | null> {
+  console.log("[dotlock] selectFolder called, rpc =", !!rpc);
+  if (!rpc) return null;
+  try {
+    const result = await rpc.request.selectFolder({});
+    console.log("[dotlock] selectFolder result:", result);
+    return result;
+  } catch (e) {
+    console.error("[dotlock] selectFolder error:", e);
+    return null;
+  }
+}
+
+export async function getRepos(): Promise<Repo[]> {
+  console.log("[dotlock] getRepos called, rpc =", !!rpc);
+  if (!rpc) return [];
+  try {
+    const result = await rpc.request.getRepos({});
+    console.log("[dotlock] getRepos result:", result);
+    return result;
+  } catch (e) {
+    console.error("[dotlock] getRepos error:", e);
+    return [];
+  }
+}
+
+export async function getRepo(name: string): Promise<Repo | null> {
+  if (!rpc) return null;
+  try {
+    return await rpc.request.getRepo({ name });
+  } catch (e) {
+    console.error("[dotlock] getRepo error:", e);
+    return null;
+  }
+}
+
+export async function removeRepo(name: string): Promise<boolean> {
+  if (!rpc) return false;
+  try {
+    return await rpc.request.removeRepo({ name });
+  } catch (e) {
+    console.error("[dotlock] removeRepo error:", e);
+    return false;
+  }
+}

@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import type { KeyEntry, Repo } from "../types";
-import { MOCK_REPOS, PROVIDERS } from "../data/mockData";
+import { PROVIDERS } from "../data/mockData";
+import { useRepos } from "../App";
 import { timeAgo } from "../utils";
 import {
   LockIcon,
@@ -341,7 +342,8 @@ function KeyRow({ entry }: { entry: KeyEntry }) {
 export function RepoDetail() {
   const { name } = useParams<{ name: string }>();
   const navigate = useNavigate();
-  const repo = MOCK_REPOS.find((r) => r.name === name);
+  const { repos } = useRepos();
+  const repo = repos.find((r) => r.name === name);
 
   if (!repo) {
     return (
