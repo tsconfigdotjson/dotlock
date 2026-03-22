@@ -8,6 +8,7 @@
     "dev:hmr": "concurrently \"bun run hmr\" \"bun run start\"",
     "hmr": "vite --port 5173",
     "build:canary": "vite build && electrobun build --env=canary",
+    "build:helpers": "./tools/build-helpers.sh",
     "test": "bun test",
     "ci": "biome format . && bun run lint && bun run typecheck",
     "format": "biome check --write .",

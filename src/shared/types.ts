@@ -32,6 +32,7 @@ export type VaultMeta = {
   path: string;
   name: string;
   lastOpened: string; // ISO date
+  keychainEnabled?: boolean;
 };
 
 export type VaultData = {

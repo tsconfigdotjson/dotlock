@@ -14,7 +14,6 @@ import { fileWatcher } from "./watcher";
 import { addRecentVault, getRecentVaults } from "./recentVaults";
 import {
   deletePassword,
-  hasStoredPassword,
   retrievePassword,
   storePassword,
 } from "./keychain";
@@ -123,16 +122,41 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
 
       // ── Keychain / Touch ID ───────────────────────────────────────
 
-      hasKeychainPassword: async ({ vaultPath }) =>
-        hasStoredPassword(vaultPath),
+      hasKeychainPassword: async ({ vaultPath }) => {
+        // Data protection keychain with biometric ACL can't be probed without auth.
+        // We track keychainEnabled in the recent vaults metadata instead.
+        const recents = await getRecentVaults();
+        const meta = recents.find((r) => r.path === vaultPath);
+        return meta?.keychainEnabled === true;
+      },
 
-      storeInKeychain: async ({ vaultPath, password }) =>
-        storePassword(vaultPath, password),
+      storeInKeychain: async ({ vaultPath, password }) => {
+        const ok = await storePassword(vaultPath, password);
+        if (ok) {
+          // Mark this vault as keychain-enabled in recents
+          const recents = await getRecentVaults();
+          const existing = recents.find((r) => r.path === vaultPath);
+          if (existing) {
+            await addRecentVault({ ...existing, keychainEnabled: true });
+          }
+        }
+        return ok;
+      },
 
       retrieveFromKeychain: async ({ vaultPath }) =>
         retrievePassword(vaultPath),
 
-      removeFromKeychain: async ({ vaultPath }) => deletePassword(vaultPath),
+      removeFromKeychain: async ({ vaultPath }) => {
+        const ok = await deletePassword(vaultPath);
+        if (ok) {
+          const recents = await getRecentVaults();
+          const existing = recents.find((r) => r.path === vaultPath);
+          if (existing) {
+            await addRecentVault({ ...existing, keychainEnabled: false });
+          }
+        }
+        return ok;
+      },
 
       // ── Repo operations (require unlocked vault) ──────────────────
 
