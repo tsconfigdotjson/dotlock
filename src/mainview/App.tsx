@@ -9,12 +9,30 @@ import {
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { Dashboard } from "./components/Dashboard";
 import { FolderIcon, KeyIcon, LockIcon } from "./components/icons";
+import { PasswordPrompt } from "./components/PasswordPrompt";
 import { RepoDetail } from "./components/RepoDetail";
 import { SidebarLink } from "./components/SidebarLink";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { VaultPicker } from "./components/VaultPicker";
 import * as rpc from "./rpc";
-import type { Repo, Theme } from "./types";
+import type { Repo, Theme, VaultState } from "./types";
 import { applyTheme } from "./utils";
+
+// ── App state machine ───────────────────────────────────────────────
+
+type AppScreen =
+  | { screen: "loading" }
+  | { screen: "vault_picker" }
+  | {
+      screen: "password_prompt";
+      mode: "open" | "create";
+      vaultPath: string;
+      vaultName: string;
+      hasKeychain: boolean;
+    }
+  | { screen: "unlocked" };
+
+// ── Repo context (shared with Dashboard + RepoDetail) ───────────────
 
 type RepoContextType = {
   repos: Repo[];
@@ -44,26 +62,22 @@ export function driftCount(repo: Repo): number {
   return repo.envFiles.filter((f) => f.syncStatus !== "synced").length;
 }
 
-function App() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem("dotlock-theme") as Theme | null;
-    return saved || "system";
-  });
+// ── Unlocked App (sidebar + routes) ─────────────────────────────────
+
+function UnlockedApp({
+  theme,
+  onThemeChange,
+  onLock,
+  vaultName,
+}: {
+  theme: Theme;
+  onThemeChange: (t: Theme) => void;
+  onLock: () => void;
+  vaultName: string;
+}) {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
-
-  useEffect(() => {
-    applyTheme(theme);
-    localStorage.setItem("dotlock-theme", theme);
-
-    if (theme === "system") {
-      const mq = window.matchMedia("(prefers-color-scheme: dark)");
-      const handler = () => applyTheme("system");
-      mq.addEventListener("change", handler);
-      return () => mq.removeEventListener("change", handler);
-    }
-  }, [theme]);
 
   // Initial load
   useEffect(() => {
@@ -185,9 +199,22 @@ function App() {
             )}
           </nav>
 
-          {/* Theme Toggle */}
-          <div className="px-3 py-3 border-t border-gray-200/50 dark:border-white/[0.06]">
-            <ThemeToggle theme={theme} onChange={setTheme} />
+          {/* Footer */}
+          <div className="px-3 py-3 border-t border-gray-200/50 dark:border-white/[0.06] space-y-2">
+            {/* Lock Vault */}
+            <button
+              type="button"
+              onClick={onLock}
+              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[12px] font-medium text-gray-500 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+            >
+              <LockIcon size={14} />
+              <span className="truncate">{vaultName}</span>
+              <span className="ml-auto text-[10px] text-gray-400 dark:text-gray-500">
+                Lock
+              </span>
+            </button>
+
+            <ThemeToggle theme={theme} onChange={onThemeChange} />
           </div>
         </aside>
 
@@ -200,6 +227,136 @@ function App() {
         </main>
       </div>
     </RepoContext.Provider>
+  );
+}
+
+// ── Root App ────────────────────────────────────────────────────────
+
+function App() {
+  const [theme, setTheme] = useState<Theme>(() => {
+    const saved = localStorage.getItem("dotlock-theme") as Theme | null;
+    return saved || "system";
+  });
+  const [appState, setAppState] = useState<AppScreen>({ screen: "loading" });
+
+  // Track current vault name for the sidebar lock button
+  const [currentVaultName, setCurrentVaultName] = useState("");
+
+  useEffect(() => {
+    applyTheme(theme);
+    localStorage.setItem("dotlock-theme", theme);
+
+    if (theme === "system") {
+      const mq = window.matchMedia("(prefers-color-scheme: dark)");
+      const handler = () => applyTheme("system");
+      mq.addEventListener("change", handler);
+      return () => mq.removeEventListener("change", handler);
+    }
+  }, [theme]);
+
+  // Determine initial screen
+  useEffect(() => {
+    rpc.getVaultState().then((state) => {
+      if (state === "unlocked") {
+        setAppState({ screen: "unlocked" });
+      } else {
+        setAppState({ screen: "vault_picker" });
+      }
+    });
+  }, []);
+
+  // Listen for vault state changes from backend
+  useEffect(() => {
+    rpc.onVaultStateChanged((state: VaultState) => {
+      if (state === "unlocked") {
+        setAppState({ screen: "unlocked" });
+      } else if (state === "locked") {
+        setAppState({ screen: "vault_picker" });
+      }
+    });
+  }, []);
+
+  const handleOpenVault = async (path: string, name: string) => {
+    setCurrentVaultName(name);
+    const hasKc = await rpc.hasKeychainPassword(path);
+    setAppState({
+      screen: "password_prompt",
+      mode: "open",
+      vaultPath: path,
+      vaultName: name,
+      hasKeychain: hasKc,
+    });
+  };
+
+  const handleCreateVault = (path: string, name: string) => {
+    setCurrentVaultName(name);
+    setAppState({
+      screen: "password_prompt",
+      mode: "create",
+      vaultPath: path,
+      vaultName: name,
+      hasKeychain: false,
+    });
+  };
+
+  const handleUnlocked = () => {
+    setAppState({ screen: "unlocked" });
+  };
+
+  const handleBack = () => {
+    setAppState({ screen: "vault_picker" });
+  };
+
+  const handleLock = async () => {
+    await rpc.lockVault();
+    setAppState({ screen: "vault_picker" });
+  };
+
+  // ── Render ──────────────────────────────────────────────────────
+
+  if (appState.screen === "loading") {
+    return (
+      <div className="h-screen flex items-center justify-center bg-white dark:bg-[#1a1a1a]">
+        <div
+          className="h-[72px] w-full absolute top-0"
+          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+        />
+      </div>
+    );
+  }
+
+  if (appState.screen === "vault_picker") {
+    return (
+      <VaultPicker
+        theme={theme}
+        onThemeChange={setTheme}
+        onOpenVault={handleOpenVault}
+        onCreateVault={handleCreateVault}
+      />
+    );
+  }
+
+  if (appState.screen === "password_prompt") {
+    return (
+      <PasswordPrompt
+        mode={appState.mode}
+        vaultPath={appState.vaultPath}
+        vaultName={appState.vaultName}
+        hasKeychain={appState.hasKeychain}
+        onBack={handleBack}
+        onUnlocked={handleUnlocked}
+      />
+    );
+  }
+
+  // screen === "unlocked"
+  return (
+    <UnlockedApp
+      theme={theme}
+      onThemeChange={setTheme}
+      onLock={handleLock}
+      vaultName={currentVaultName || "Vault"}
+    />
   );
 }
 
