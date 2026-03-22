@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { Dashboard } from "./components/Dashboard";
 import { FolderIcon, KeyIcon, LockIcon } from "./components/icons";
@@ -13,16 +20,28 @@ type RepoContextType = {
   repos: Repo[];
   loading: boolean;
   addRepo: () => Promise<void>;
+  updateRepo: (repo: Repo) => void;
 };
 
 const RepoContext = createContext<RepoContextType>({
   repos: [],
   loading: true,
   addRepo: async () => {},
+  updateRepo: () => {},
 });
 
 export function useRepos() {
   return useContext(RepoContext);
+}
+
+/** Returns true if any env file in the repo has drift. */
+export function repoHasDrift(repo: Repo): boolean {
+  return repo.envFiles.some((f) => f.syncStatus !== "synced");
+}
+
+/** Count of drifted files in a repo. */
+export function driftCount(repo: Repo): number {
+  return repo.envFiles.filter((f) => f.syncStatus !== "synced").length;
 }
 
 function App() {
@@ -46,10 +65,19 @@ function App() {
     }
   }, [theme]);
 
+  // Initial load
   useEffect(() => {
     rpc.getRepos().then((r) => {
       setRepos(r);
       setLoading(false);
+    });
+  }, []);
+
+  // Listen for push notifications from the watcher (no polling)
+  useEffect(() => {
+    rpc.onSyncChanged(async (_repoName) => {
+      const fresh = await rpc.getRepos();
+      setRepos(fresh);
     });
   }, []);
 
@@ -62,6 +90,11 @@ function App() {
       });
     }
   };
+
+  /** Immediately update a repo in local state (after import/restore). */
+  const updateRepo = useCallback((repo: Repo) => {
+    setRepos((prev) => prev.map((r) => (r.name === repo.name ? repo : r)));
+  }, []);
 
   // Derive providers from actual repo data
   const providers = useMemo(() => {
@@ -85,7 +118,7 @@ function App() {
   const activeRepo = location.pathname.match(/^\/repo\/(.+)/)?.[1] || null;
 
   return (
-    <RepoContext.Provider value={{ repos, loading, addRepo }}>
+    <RepoContext.Provider value={{ repos, loading, addRepo, updateRepo }}>
       <div className="h-screen flex bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100">
         {/* Sidebar */}
         <aside className="w-52 shrink-0 flex flex-col border-r border-gray-200/60 dark:border-white/[0.06] bg-gray-50/80 dark:bg-[#252525]/80 backdrop-blur-xl">
@@ -124,6 +157,7 @@ function App() {
                     to={`/repo/${repo.name}`}
                     label={repo.name}
                     active={activeRepo === repo.name}
+                    hasDrift={repoHasDrift(repo)}
                   />
                 ))}
               </div>

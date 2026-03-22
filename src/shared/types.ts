@@ -8,9 +8,14 @@ export type KeyEntry = {
   lastRotated?: string;
 };
 
+export type SyncStatus = "synced" | "disk_changed" | "missing";
+
 export type EnvFile = {
   filename: string;
+  absolutePath: string;
+  rawContent: string;
   keys: KeyEntry[];
+  syncStatus: SyncStatus;
 };
 
 export type Repo = {
@@ -26,7 +31,23 @@ export type DotlockRPC = {
       getRepos: { params: Record<string, never>; response: Repo[] };
       getRepo: { params: { name: string }; response: Repo | null };
       removeRepo: { params: { name: string }; response: boolean };
+      importFile: {
+        params: { repoName: string; absolutePath: string };
+        response: Repo | null;
+      };
+      restoreFile: {
+        params: { repoName: string; absolutePath: string };
+        response: Repo | null;
+      };
+      dismissDrift: {
+        params: { repoName: string; absolutePath: string };
+        response: Repo | null;
+      };
     };
   }>;
-  webview: RPCSchema;
+  webview: RPCSchema<{
+    messages: {
+      syncChanged: { repoName: string };
+    };
+  }>;
 };

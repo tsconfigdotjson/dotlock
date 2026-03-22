@@ -21,7 +21,7 @@ function isEnvFilename(name: string): boolean {
   return name === ".env" || name.startsWith(".env.");
 }
 
-function parseEnvFile(content: string): KeyEntry[] {
+export function parseEnvFile(content: string): KeyEntry[] {
   const keys: KeyEntry[] = [];
   const today = new Date().toISOString().split("T")[0];
 
@@ -77,7 +77,13 @@ export async function scanFolder(folderPath: string): Promise<EnvFile[]> {
           if (keys.length > 0) {
             const relDir = relative(folderPath, dirname(fullPath));
             const filename = relDir ? `${entry.name} (${relDir})` : entry.name;
-            envFiles.push({ filename, keys });
+            envFiles.push({
+              filename,
+              absolutePath: fullPath,
+              rawContent: content,
+              keys,
+              syncStatus: "synced",
+            });
           }
         } catch {
           // Skip unreadable files

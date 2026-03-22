@@ -1,4 +1,4 @@
-import type { Repo } from "../shared/types";
+import type { EnvFile, Repo, SyncStatus } from "../shared/types";
 
 class InMemoryDB {
   private repos = new Map<string, Repo>();
@@ -26,6 +26,39 @@ class InMemoryDB {
       }
     }
     return null;
+  }
+
+  /** Update sync status for a specific env file within a repo. */
+  updateSyncStatus(
+    repoName: string,
+    absolutePath: string,
+    status: SyncStatus,
+  ): void {
+    const repo = this.repos.get(repoName);
+    if (!repo) return;
+    const file = repo.envFiles.find((f) => f.absolutePath === absolutePath);
+    if (file) {
+      file.syncStatus = status;
+    }
+  }
+
+  /** Replace an env file's content (used by import). */
+  updateEnvFile(repoName: string, updated: EnvFile): void {
+    const repo = this.repos.get(repoName);
+    if (!repo) return;
+    const idx = repo.envFiles.findIndex(
+      (f) => f.absolutePath === updated.absolutePath,
+    );
+    if (idx !== -1) {
+      repo.envFiles[idx] = updated;
+    }
+  }
+
+  /** Get all absolute paths for a repo's env files. */
+  getWatchPaths(repoName: string): string[] {
+    const repo = this.repos.get(repoName);
+    if (!repo) return [];
+    return repo.envFiles.map((f) => f.absolutePath);
   }
 }
 

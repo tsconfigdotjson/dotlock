@@ -1,8 +1,14 @@
 import { Link } from "react-router-dom";
-import { useRepos } from "../App";
+import { driftCount, repoHasDrift, useRepos } from "../App";
 import type { Repo } from "../types";
 import { getGreeting } from "../utils";
-import { FileIcon, FolderIcon, LockIcon, PlusIcon } from "./icons";
+import {
+  AlertTriangleIcon,
+  FileIcon,
+  FolderIcon,
+  LockIcon,
+  PlusIcon,
+} from "./icons";
 
 function getTotalKeys(repo: Repo): number {
   return repo.envFiles.reduce((sum, f) => sum + f.keys.length, 0);
@@ -16,11 +22,17 @@ function ProjectCard({ repo }: { repo: Repo }) {
   const estimatedHeight =
     repo.envFiles.reduce((sum, f) => sum + 24 + f.keys.length * 20, 0) + 12;
   const willOverflow = estimatedHeight > CARD_MAX_HEIGHT;
+  const hasDrift = repoHasDrift(repo);
+  const drifted = driftCount(repo);
 
   return (
     <Link
       to={`/repo/${repo.name}`}
-      className="group flex flex-col justify-start text-left bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] rounded-xl p-0 overflow-hidden hover:border-gray-300/80 dark:hover:border-white/[0.15] hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20 transition-all"
+      className={`group flex flex-col justify-start text-left bg-white dark:bg-white/[0.04] border rounded-xl p-0 overflow-hidden hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20 transition-all ${
+        hasDrift
+          ? "border-amber-300/60 dark:border-amber-500/30 hover:border-amber-400/80 dark:hover:border-amber-500/50"
+          : "border-gray-200/60 dark:border-white/[0.08] hover:border-gray-300/80 dark:hover:border-white/[0.15]"
+      }`}
     >
       <div className="px-4 py-3 border-b border-gray-100 dark:border-white/[0.06]">
         <div className="flex items-center gap-2">
@@ -28,6 +40,12 @@ function ProjectCard({ repo }: { repo: Repo }) {
           <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
             {repo.name}
           </span>
+          {hasDrift && (
+            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-medium">
+              <AlertTriangleIcon size={10} />
+              {drifted} {drifted === 1 ? "file" : "files"}
+            </span>
+          )}
           <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 tabular-nums">
             {totalKeys} keys &middot; {totalFiles}{" "}
             {totalFiles === 1 ? "file" : "files"}
@@ -46,6 +64,9 @@ function ProjectCard({ repo }: { repo: Repo }) {
                 <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 font-mono">
                   {envFile.filename}
                 </span>
+                {envFile.syncStatus !== "synced" && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 dark:bg-amber-500" />
+                )}
               </div>
               <div className="space-y-1 pl-[18px]">
                 {envFile.keys.map((key) => (
@@ -109,6 +130,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
 export function Dashboard() {
   const { repos, loading, addRepo } = useRepos();
   const totalKeys = repos.reduce((sum, r) => sum + getTotalKeys(r), 0);
+  const totalDrift = repos.reduce((sum, r) => sum + driftCount(r), 0);
 
   if (loading) {
     return (
@@ -153,6 +175,12 @@ export function Dashboard() {
           <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
             {repos.length} {repos.length === 1 ? "project" : "projects"},{" "}
             {totalKeys} tracked keys
+            {totalDrift > 0 && (
+              <span className="text-amber-500 dark:text-amber-400">
+                {" "}
+                &middot; {totalDrift} out of sync
+              </span>
+            )}
           </p>
         </div>
         <button

@@ -15,6 +15,15 @@ type DotlockRPCClient = {
 // We store the rpc object here so the typed wrapper functions can use it.
 let rpc: DotlockRPCClient | null = null;
 
+// Callback for when the backend pushes a sync change notification.
+type SyncChangedCallback = (repoName: string) => void;
+let syncChangedCallback: SyncChangedCallback | null = null;
+
+/** Register a callback to be notified when the watcher detects file drift. */
+export function onSyncChanged(cb: SyncChangedCallback): void {
+  syncChangedCallback = cb;
+}
+
 export async function initRPC(): Promise<void> {
   console.log("[dotlock] initRPC: __electrobun =", !!window.__electrobun);
   if (!window.__electrobun) {
@@ -33,6 +42,16 @@ export async function initRPC(): Promise<void> {
     });
     new Electroview({ rpc: rpcInstance });
     rpc = rpcInstance;
+
+    // Listen for push messages from the bun watcher
+    rpcInstance.addMessageListener(
+      "syncChanged",
+      ({ repoName }: { repoName: string }) => {
+        console.log("[dotlock] syncChanged push for:", repoName);
+        if (syncChangedCallback) syncChangedCallback(repoName);
+      },
+    );
+
     console.log("[dotlock] RPC initialized successfully");
   } catch (e) {
     console.warn("[dotlock] Electrobun RPC not available:", e);
@@ -90,5 +109,44 @@ export async function removeRepo(name: string): Promise<boolean> {
   } catch (e) {
     console.error("[dotlock] removeRepo error:", e);
     return false;
+  }
+}
+
+export async function importFile(
+  repoName: string,
+  absolutePath: string,
+): Promise<Repo | null> {
+  if (!rpc) return null;
+  try {
+    return await rpc.request.importFile({ repoName, absolutePath });
+  } catch (e) {
+    console.error("[dotlock] importFile error:", e);
+    return null;
+  }
+}
+
+export async function restoreFile(
+  repoName: string,
+  absolutePath: string,
+): Promise<Repo | null> {
+  if (!rpc) return null;
+  try {
+    return await rpc.request.restoreFile({ repoName, absolutePath });
+  } catch (e) {
+    console.error("[dotlock] restoreFile error:", e);
+    return null;
+  }
+}
+
+export async function dismissDrift(
+  repoName: string,
+  absolutePath: string,
+): Promise<Repo | null> {
+  if (!rpc) return null;
+  try {
+    return await rpc.request.dismissDrift({ repoName, absolutePath });
+  } catch (e) {
+    console.error("[dotlock] dismissDrift error:", e);
+    return null;
   }
 }

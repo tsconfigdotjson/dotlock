@@ -1,4 +1,5 @@
 import { basename } from "node:path";
+import { readFile, writeFile } from "node:fs/promises";
 import {
   ApplicationMenu,
   BrowserView,
@@ -8,7 +9,8 @@ import {
 } from "electrobun/bun";
 import type { DotlockRPC } from "../shared/types";
 import { db } from "./db";
-import { scanFolder } from "./scanner";
+import { parseEnvFile, scanFolder } from "./scanner";
+import { fileWatcher } from "./watcher";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -56,14 +58,80 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
         const name = basename(folderPath);
         const repo = { name, path: folderPath, envFiles };
         db.add(repo);
+
+        // Start watching the env files
+        const watchPaths = db.getWatchPaths(name);
+        fileWatcher.watchRepo(name, watchPaths);
+
         return repo;
       },
+
       getRepos: () => db.getAll(),
       getRepo: ({ name }) => db.get(name),
-      removeRepo: ({ name }) => db.remove(name),
+
+      removeRepo: ({ name }) => {
+        fileWatcher.unwatchRepo(name);
+        return db.remove(name);
+      },
+
+      importFile: async ({ repoName, absolutePath }) => {
+        const repo = db.get(repoName);
+        if (!repo) return null;
+
+        const envFile = repo.envFiles.find(
+          (f) => f.absolutePath === absolutePath,
+        );
+        if (!envFile) return null;
+
+        try {
+          const content = await readFile(absolutePath, "utf-8");
+          const keys = parseEnvFile(content);
+          db.updateEnvFile(repoName, {
+            ...envFile,
+            rawContent: content,
+            keys,
+            syncStatus: "synced",
+          });
+          console.log(`[dotlock] imported ${absolutePath} from disk`);
+          return db.get(repoName);
+        } catch (e) {
+          console.error(`[dotlock] import failed for ${absolutePath}:`, e);
+          return null;
+        }
+      },
+
+      restoreFile: async ({ repoName, absolutePath }) => {
+        const repo = db.get(repoName);
+        if (!repo) return null;
+
+        const envFile = repo.envFiles.find(
+          (f) => f.absolutePath === absolutePath,
+        );
+        if (!envFile) return null;
+
+        try {
+          await writeFile(absolutePath, envFile.rawContent, "utf-8");
+          db.updateSyncStatus(repoName, absolutePath, "synced");
+          console.log(`[dotlock] restored ${absolutePath} to disk`);
+          return db.get(repoName);
+        } catch (e) {
+          console.error(`[dotlock] restore failed for ${absolutePath}:`, e);
+          return null;
+        }
+      },
+
+      dismissDrift: ({ repoName, absolutePath }) => {
+        db.updateSyncStatus(repoName, absolutePath, "synced");
+        return db.get(repoName);
+      },
     },
     messages: {},
   },
+});
+
+// Push sync status changes to the webview
+fileWatcher.setOnChange((repoName) => {
+  rpc.send.syncChanged({ repoName });
 });
 
 ApplicationMenu.setApplicationMenu([
