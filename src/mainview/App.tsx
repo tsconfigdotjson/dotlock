@@ -1,34 +1,81 @@
 import { useState, useEffect } from "react";
 
+// --- Types ---
+type EnvFile = {
+	filename: string;
+	keys: { name: string; preview: string }[];
+};
+
+type Repo = {
+	name: string;
+	envFiles: EnvFile[];
+};
+
 // --- Mock Data ---
-const MOCK_REPOS = [
+const MOCK_REPOS: Repo[] = [
 	{
 		name: "poppy",
-		keys: [
-			{ name: "OPENAPI_KEY", preview: "sk-proj-a8x...R4nQ" },
-			{ name: "CLOUDFLARE_API_TOKEN", preview: "v1.0-8f3d...91ab" },
-			{ name: "HARNESS_KEY", preview: "pat.harn...xK9z" },
-			{ name: "DATABASE_URL", preview: "postgres://u...5432/db" },
-			{ name: "REDIS_URL", preview: "redis://def...6379" },
+		envFiles: [
+			{
+				filename: ".env",
+				keys: [
+					{ name: "DATABASE_URL", preview: "postgres://u...5432/db" },
+					{ name: "REDIS_URL", preview: "redis://def...6379" },
+				],
+			},
+			{
+				filename: ".env.local",
+				keys: [
+					{ name: "OPENAPI_KEY", preview: "sk-proj-a8x...R4nQ" },
+					{ name: "CLOUDFLARE_API_TOKEN", preview: "v1.0-8f3d...91ab" },
+					{ name: "HARNESS_KEY", preview: "pat.harn...xK9z" },
+				],
+			},
 		],
 	},
 	{
 		name: "earlyco",
-		keys: [
-			{ name: "STRIPE_SECRET_KEY", preview: "sk_live_51...yZq" },
-			{ name: "STRIPE_WEBHOOK_SECRET", preview: "whsec_Mj...8kL" },
-			{ name: "SENDGRID_API_KEY", preview: "SG.xK9m...pQ3v" },
-			{ name: "DATABASE_URL", preview: "postgres://u...5432/db" },
-			{ name: "NEXT_PUBLIC_APP_URL", preview: "https://earl..." },
-			{ name: "JWT_SECRET", preview: "eyJ0eXAiO...Rk9" },
+		envFiles: [
+			{
+				filename: ".env",
+				keys: [
+					{ name: "DATABASE_URL", preview: "postgres://u...5432/db" },
+					{ name: "NEXT_PUBLIC_APP_URL", preview: "https://earl..." },
+					{ name: "NEXT_PUBLIC_POSTHOG_KEY", preview: "phc_a8Kx...9mQ" },
+				],
+			},
+			{
+				filename: ".env.local",
+				keys: [
+					{ name: "STRIPE_SECRET_KEY", preview: "sk_live_51...yZq" },
+					{ name: "STRIPE_WEBHOOK_SECRET", preview: "whsec_Mj...8kL" },
+					{ name: "SENDGRID_API_KEY", preview: "SG.xK9m...pQ3v" },
+					{ name: "JWT_SECRET", preview: "eyJ0eXAiO...Rk9" },
+				],
+			},
+			{
+				filename: ".env.production",
+				keys: [
+					{ name: "SENTRY_DSN", preview: "https://abc...sentry.io" },
+					{ name: "LOGFLARE_API_KEY", preview: "lf_k9x...2mP" },
+					{ name: "DATADOG_API_KEY", preview: "dd-api...7xR" },
+					{ name: "LAUNCHDARKLY_SDK_KEY", preview: "sdk-a4f...pQ9" },
+					{ name: "SEGMENT_WRITE_KEY", preview: "wk_9xJ...3nL" },
+				],
+			},
 		],
 	},
 	{
 		name: "infractl",
-		keys: [
-			{ name: "AWS_ACCESS_KEY_ID", preview: "AKIA4...X7MQ" },
-			{ name: "AWS_SECRET_ACCESS_KEY", preview: "wJalr...4ceP" },
-			{ name: "TERRAFORM_TOKEN", preview: "tfe-at...9xZp" },
+		envFiles: [
+			{
+				filename: ".env",
+				keys: [
+					{ name: "AWS_ACCESS_KEY_ID", preview: "AKIA4...X7MQ" },
+					{ name: "AWS_SECRET_ACCESS_KEY", preview: "wJalr...4ceP" },
+					{ name: "TERRAFORM_TOKEN", preview: "tfe-at...9xZp" },
+				],
+			},
 		],
 	},
 ];
@@ -245,13 +292,47 @@ function SidebarItem({
 	);
 }
 
+function FileIcon() {
+	return (
+		<svg
+			className="w-3 h-3"
+			fill="none"
+			viewBox="0 0 24 24"
+			strokeWidth={1.5}
+			stroke="currentColor"
+		>
+			<path
+				strokeLinecap="round"
+				strokeLinejoin="round"
+				d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+			/>
+		</svg>
+	);
+}
+
+function getTotalKeys(repo: Repo): number {
+	return repo.envFiles.reduce((sum, f) => sum + f.keys.length, 0);
+}
+
+const CARD_MAX_HEIGHT = 160; // px for the keys area
+
 function ProjectCard({
 	repo,
 	onClick,
 }: {
-	repo: (typeof MOCK_REPOS)[0];
+	repo: Repo;
 	onClick: () => void;
 }) {
+	const totalKeys = getTotalKeys(repo);
+	const totalFiles = repo.envFiles.length;
+	// Estimate if content will overflow: ~20px per key row + ~24px per file header
+	const estimatedHeight =
+		repo.envFiles.reduce(
+			(sum, f) => sum + 24 + f.keys.length * 20,
+			0,
+		) + 12; // padding
+	const willOverflow = estimatedHeight > CARD_MAX_HEIGHT;
+
 	return (
 		<button
 			onClick={onClick}
@@ -264,25 +345,51 @@ function ProjectCard({
 						{repo.name}
 					</span>
 					<span className="ml-auto text-xs text-gray-400 dark:text-gray-500 tabular-nums">
-						{repo.keys.length}
+						{totalKeys} keys &middot; {totalFiles}{" "}
+						{totalFiles === 1 ? "file" : "files"}
 					</span>
 				</div>
 			</div>
-			<div className="px-4 py-3 space-y-1.5">
-				{repo.keys.slice(0, 4).map((key) => (
-					<div key={key.name} className="flex items-center gap-2">
-						<LockIcon className="w-3 h-3 text-gray-300 dark:text-gray-600 shrink-0" />
-						<span className="text-xs text-gray-600 dark:text-gray-400 font-mono truncate">
-							{key.name}
-						</span>
-					</div>
-				))}
-				{repo.keys.length > 4 && (
-					<div className="text-xs text-gray-400 dark:text-gray-500 pl-5">
-						+{repo.keys.length - 4} more
-					</div>
+			<div className="relative">
+				<div
+					className="px-4 py-3 space-y-3 overflow-hidden"
+					style={{ maxHeight: CARD_MAX_HEIGHT }}
+				>
+					{repo.envFiles.map((envFile) => (
+						<div key={envFile.filename}>
+							<div className="flex items-center gap-1.5 mb-1.5">
+								<FileIcon />
+								<span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 font-mono">
+									{envFile.filename}
+								</span>
+							</div>
+							<div className="space-y-1 pl-[18px]">
+								{envFile.keys.map((key) => (
+									<div
+										key={key.name}
+										className="flex items-center gap-2"
+									>
+										<LockIcon className="w-3 h-3 text-gray-300 dark:text-gray-600 shrink-0" />
+										<span className="text-xs text-gray-600 dark:text-gray-400 font-mono truncate">
+											{key.name}
+										</span>
+									</div>
+								))}
+							</div>
+						</div>
+					))}
+				</div>
+				{willOverflow && (
+					<div className="absolute bottom-0 inset-x-0 h-12 bg-gradient-to-t from-white dark:from-[#1a1a1a] to-transparent pointer-events-none" />
 				)}
 			</div>
+			{willOverflow && (
+				<div className="px-4 py-2 border-t border-gray-100 dark:border-white/[0.06]">
+					<span className="text-[11px] font-medium text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">
+						Show all {totalKeys} keys
+					</span>
+				</div>
+			)}
 		</button>
 	);
 }
@@ -308,7 +415,7 @@ function App() {
 		}
 	}, [theme]);
 
-	const totalKeys = MOCK_REPOS.reduce((sum, r) => sum + r.keys.length, 0);
+	const totalKeys = MOCK_REPOS.reduce((sum, r) => sum + getTotalKeys(r), 0);
 
 	return (
 		<div className="h-screen flex bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100">
