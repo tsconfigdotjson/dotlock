@@ -1,3 +1,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+	html {
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	/* Prevent text selection on UI chrome, allow on content */
+	body {
+		user-select: none;
+		-webkit-user-select: none;
+	}
+
+	/* Scrollbar styling for macOS feel */
+	::-webkit-scrollbar {
+		width: 6px;
+	}
+	::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	::-webkit-scrollbar-thumb {
+		background: rgba(0, 0, 0, 0.15);
+		border-radius: 3px;
+	}
+	.dark ::-webkit-scrollbar-thumb {
+		background: rgba(255, 255, 255, 0.15);
+	}
+}
