@@ -336,7 +336,7 @@ function ProjectCard({
 	return (
 		<button
 			onClick={onClick}
-			className="group text-left bg-white dark:bg-white/[0.04] border border-gray-200/80 dark:border-white/[0.08] rounded-xl p-0 overflow-hidden hover:border-gray-300 dark:hover:border-white/[0.15] hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20 transition-all"
+			className="group text-left bg-white dark:bg-white/[0.04] border border-gray-200/60 dark:border-white/[0.08] rounded-xl p-0 overflow-hidden hover:border-gray-300/80 dark:hover:border-white/[0.15] hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20 transition-all"
 		>
 			<div className="px-4 py-3 border-b border-gray-100 dark:border-white/[0.06]">
 				<div className="flex items-center gap-2">
@@ -385,7 +385,10 @@ function ProjectCard({
 			</div>
 			{willOverflow && (
 				<div className="px-4 py-2 border-t border-gray-100 dark:border-white/[0.06]">
-					<span className="text-[11px] font-medium text-blue-500 dark:text-blue-400 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">
+					<span
+						className="text-[11px] font-medium transition-colors"
+						style={{ color: "var(--system-accent)" }}
+					>
 						Show all {totalKeys} keys
 					</span>
 				</div>
@@ -418,9 +421,9 @@ function App() {
 	const totalKeys = MOCK_REPOS.reduce((sum, r) => sum + getTotalKeys(r), 0);
 
 	return (
-		<div className="h-screen flex bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100">
+		<div className="h-screen flex bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100">
 			{/* Sidebar */}
-			<aside className="w-52 shrink-0 flex flex-col border-r border-gray-200/70 dark:border-white/[0.06] bg-gray-100/60 dark:bg-[#252525]/80 backdrop-blur-xl">
+			<aside className="w-52 shrink-0 flex flex-col border-r border-gray-200/60 dark:border-white/[0.06] bg-gray-50/80 dark:bg-[#252525]/80 backdrop-blur-xl">
 				{/* Drag region / Logo */}
 				<div
 					className="h-[52px] flex items-center px-4 pt-1"
@@ -498,7 +501,7 @@ function App() {
 			<main className="flex-1 flex flex-col min-w-0">
 				{/* Top Bar */}
 				<header
-					className="h-[52px] shrink-0 flex items-center justify-between px-6 border-b border-gray-200/70 dark:border-white/[0.06]"
+					className="h-[52px] shrink-0 flex items-center justify-between px-6 border-b border-gray-100 dark:border-white/[0.06]"
 					style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
 				>
 					<div>

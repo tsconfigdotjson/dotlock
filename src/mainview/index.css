@@ -3,6 +3,36 @@
 @tailwind utilities;
 
 @layer base {
+	:root {
+		/*
+		   SYSTEM ACCENT COLOR
+		   ====================
+		   CSS `AccentColor` keyword does NOT work here — WebKit (used by Electrobun's
+		   WKWebView) returns a hardcoded blue regardless of the user's macOS accent
+		   color setting. This is intentional on Apple's part due to fingerprinting
+		   concerns. Chromium/CEF has the same limitation (feature-flagged, not shipped).
+		   Firefox is the only engine that returns the real OS color, which doesn't help us.
+
+		   The fix is to read `[NSColor controlAccentColor]` from the native Zig/ObjC
+		   side and inject it into the web view at runtime via Electrobun's RPC bridge:
+
+		     document.documentElement.style.setProperty('--system-accent', '#HEX');
+		     document.documentElement.style.setProperty('--system-accent-hover', '#HEX');
+
+		   To stay reactive when the user changes their accent color in System Settings,
+		   observe `NSSystemColorsDidChangeNotification` on the native side and re-inject.
+
+		   For now we default to the standard macOS blue (#007aff light / #0a84ff dark).
+		*/
+		--system-accent: #007aff;
+		--system-accent-hover: #0068d6;
+	}
+
+	.dark {
+		--system-accent: #0a84ff;
+		--system-accent-hover: #409cff;
+	}
+
 	html {
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
