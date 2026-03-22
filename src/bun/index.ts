@@ -76,12 +76,16 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
 
       importFile: async ({ repoName, absolutePath }) => {
         const repo = db.get(repoName);
-        if (!repo) return null;
+        if (!repo) {
+          return null;
+        }
 
         const envFile = repo.envFiles.find(
           (f) => f.absolutePath === absolutePath,
         );
-        if (!envFile) return null;
+        if (!envFile) {
+          return null;
+        }
 
         try {
           const content = await readFile(absolutePath, "utf-8");
@@ -102,12 +106,16 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
 
       restoreFile: async ({ repoName, absolutePath }) => {
         const repo = db.get(repoName);
-        if (!repo) return null;
+        if (!repo) {
+          return null;
+        }
 
         const envFile = repo.envFiles.find(
           (f) => f.absolutePath === absolutePath,
         );
-        if (!envFile) return null;
+        if (!envFile) {
+          return null;
+        }
 
         try {
           await writeFile(absolutePath, envFile.rawContent, "utf-8");

@@ -48,7 +48,9 @@ export async function initRPC(): Promise<void> {
       "syncChanged",
       ({ repoName }: { repoName: string }) => {
         console.log("[dotlock] syncChanged push for:", repoName);
-        if (syncChangedCallback) syncChangedCallback(repoName);
+        if (syncChangedCallback) {
+          syncChangedCallback(repoName);
+        }
       },
     );
 
@@ -116,7 +118,9 @@ export async function importFile(
   repoName: string,
   absolutePath: string,
 ): Promise<Repo | null> {
-  if (!rpc) return null;
+  if (!rpc) {
+    return null;
+  }
   try {
     return await rpc.request.importFile({ repoName, absolutePath });
   } catch (e) {
@@ -129,7 +133,9 @@ export async function restoreFile(
   repoName: string,
   absolutePath: string,
 ): Promise<Repo | null> {
-  if (!rpc) return null;
+  if (!rpc) {
+    return null;
+  }
   try {
     return await rpc.request.restoreFile({ repoName, absolutePath });
   } catch (e) {
@@ -142,7 +148,9 @@ export async function dismissDrift(
   repoName: string,
   absolutePath: string,
 ): Promise<Repo | null> {
-  if (!rpc) return null;
+  if (!rpc) {
+    return null;
+  }
   try {
     return await rpc.request.dismissDrift({ repoName, absolutePath });
   } catch (e) {

@@ -35,7 +35,9 @@ class InMemoryDB {
     status: SyncStatus,
   ): void {
     const repo = this.repos.get(repoName);
-    if (!repo) return;
+    if (!repo) {
+      return;
+    }
     const file = repo.envFiles.find((f) => f.absolutePath === absolutePath);
     if (file) {
       file.syncStatus = status;
@@ -45,7 +47,9 @@ class InMemoryDB {
   /** Replace an env file's content (used by import). */
   updateEnvFile(repoName: string, updated: EnvFile): void {
     const repo = this.repos.get(repoName);
-    if (!repo) return;
+    if (!repo) {
+      return;
+    }
     const idx = repo.envFiles.findIndex(
       (f) => f.absolutePath === updated.absolutePath,
     );
@@ -57,7 +61,9 @@ class InMemoryDB {
   /** Get all absolute paths for a repo's env files. */
   getWatchPaths(repoName: string): string[] {
     const repo = this.repos.get(repoName);
-    if (!repo) return [];
+    if (!repo) {
+      return [];
+    }
     return repo.envFiles.map((f) => f.absolutePath);
   }
 }

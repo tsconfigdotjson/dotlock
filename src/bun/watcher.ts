@@ -37,8 +37,10 @@ class FileWatcher {
     const dirToFiles = new Map<string, Set<string>>();
     for (const fp of filePaths) {
       const dir = dirname(fp);
-      if (!dirToFiles.has(dir)) dirToFiles.set(dir, new Set());
-      dirToFiles.get(dir)!.add(basename(fp));
+      if (!dirToFiles.has(dir)) {
+        dirToFiles.set(dir, new Set());
+      }
+      dirToFiles.get(dir)?.add(basename(fp));
     }
 
     const watchers: FSWatcher[] = [];
@@ -72,7 +74,9 @@ class FileWatcher {
   unwatchRepo(repoName: string): void {
     const watchers = this.dirWatchers.get(repoName);
     if (watchers) {
-      for (const w of watchers) w.close();
+      for (const w of watchers) {
+        w.close();
+      }
       this.dirWatchers.delete(repoName);
     }
 
@@ -98,7 +102,9 @@ class FileWatcher {
 
   private scheduleCheck(repoName: string, absolutePath: string): void {
     const existing = this.timers.get(absolutePath);
-    if (existing) clearTimeout(existing);
+    if (existing) {
+      clearTimeout(existing);
+    }
 
     this.timers.set(
       absolutePath,
@@ -114,16 +120,22 @@ class FileWatcher {
     absolutePath: string,
   ): Promise<void> {
     const repo = db.get(repoName);
-    if (!repo) return;
+    if (!repo) {
+      return;
+    }
 
     const envFile = repo.envFiles.find((f) => f.absolutePath === absolutePath);
-    if (!envFile) return;
+    if (!envFile) {
+      return;
+    }
 
     const prevStatus = envFile.syncStatus;
 
     if (!existsSync(absolutePath)) {
       db.updateSyncStatus(repoName, absolutePath, "missing");
-      if (prevStatus !== "missing") this.notify(repoName);
+      if (prevStatus !== "missing") {
+        this.notify(repoName);
+      }
       return;
     }
 
@@ -136,15 +148,21 @@ class FileWatcher {
         vaultNormalized !== diskNormalized ? "disk_changed" : "synced";
 
       db.updateSyncStatus(repoName, absolutePath, newStatus);
-      if (newStatus !== prevStatus) this.notify(repoName);
+      if (newStatus !== prevStatus) {
+        this.notify(repoName);
+      }
     } catch {
       db.updateSyncStatus(repoName, absolutePath, "missing");
-      if (prevStatus !== "missing") this.notify(repoName);
+      if (prevStatus !== "missing") {
+        this.notify(repoName);
+      }
     }
   }
 
   private notify(repoName: string): void {
-    if (this.onChange) this.onChange(repoName);
+    if (this.onChange) {
+      this.onChange(repoName);
+    }
   }
 }
 

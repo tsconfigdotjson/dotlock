@@ -2,8 +2,24 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import { driftCount, useRepos } from "../App";
-import { PROVIDERS } from "../data/mockData";
 import type { EnvFile, KeyEntry, Repo, SyncStatus } from "../types";
+
+const PROVIDERS = [
+  "AWS",
+  "Cloudflare",
+  "DigitalOcean",
+  "Hetzner",
+  "Vercel",
+  "Heroku",
+  "Fly.io",
+  "Railway",
+  "Supabase",
+  "PlanetScale",
+  "Stripe",
+  "SendGrid",
+  "Datadog",
+  "Sentry",
+] as const;
 import { timeAgo } from "../utils";
 import * as rpc from "../rpc";
 import {
@@ -33,7 +49,9 @@ function getTotalKeys(repo: Repo): number {
 
 function DriftBanner({ repo }: { repo: Repo }) {
   const drifted = driftCount(repo);
-  if (drifted === 0) return null;
+  if (drifted === 0) {
+    return null;
+  }
 
   const changedCount = repo.envFiles.filter(
     (f) => f.syncStatus === "disk_changed",
@@ -43,14 +61,16 @@ function DriftBanner({ repo }: { repo: Repo }) {
   ).length;
 
   const parts: string[] = [];
-  if (changedCount > 0)
+  if (changedCount > 0) {
     parts.push(
       `${changedCount} ${changedCount === 1 ? "file" : "files"} changed on disk`,
     );
-  if (missingCount > 0)
+  }
+  if (missingCount > 0) {
     parts.push(
       `${missingCount} ${missingCount === 1 ? "file" : "files"} missing from disk`,
     );
+  }
 
   return (
     <div className="mx-6 mt-4 px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-500/[0.08] border border-amber-200/60 dark:border-amber-500/20">
@@ -79,7 +99,9 @@ function DriftBanner({ repo }: { repo: Repo }) {
 // ---------------------------------------------------------------------------
 
 function SyncBadge({ status }: { status: SyncStatus }) {
-  if (status === "synced") return null;
+  if (status === "synced") {
+    return null;
+  }
 
   const config = {
     disk_changed: {
@@ -117,25 +139,33 @@ function SyncActions({
 }) {
   const [acting, setActing] = useState<"import" | "restore" | null>(null);
 
-  if (envFile.syncStatus === "synced") return null;
+  if (envFile.syncStatus === "synced") {
+    return null;
+  }
 
   const handleImport = async () => {
     setActing("import");
     const updated = await rpc.importFile(repoName, envFile.absolutePath);
-    if (updated) onResolved(updated);
+    if (updated) {
+      onResolved(updated);
+    }
     setActing(null);
   };
 
   const handleRestore = async () => {
     setActing("restore");
     const updated = await rpc.restoreFile(repoName, envFile.absolutePath);
-    if (updated) onResolved(updated);
+    if (updated) {
+      onResolved(updated);
+    }
     setActing(null);
   };
 
   const handleDismiss = async () => {
     const updated = await rpc.dismissDrift(repoName, envFile.absolutePath);
-    if (updated) onResolved(updated);
+    if (updated) {
+      onResolved(updated);
+    }
   };
 
   return (
