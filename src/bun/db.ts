@@ -21,7 +21,9 @@ class InMemoryDB {
 
   findByPath(path: string): Repo | null {
     for (const repo of this.repos.values()) {
-      if (repo.path === path) return repo;
+      if (repo.path === path) {
+        return repo;
+      }
     }
     return null;
   }

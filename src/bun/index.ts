@@ -1,3 +1,4 @@
+import { basename } from "node:path";
 import {
   ApplicationMenu,
   BrowserView,
@@ -5,7 +6,6 @@ import {
   Updater,
   Utils,
 } from "electrobun/bun";
-import { basename } from "node:path";
 import type { DotlockRPC } from "../shared/types";
 import { db } from "./db";
 import { scanFolder } from "./scanner";
@@ -46,7 +46,9 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
 
         console.log("[dotlock] dialog returned:", paths);
         const folderPath = paths[0];
-        if (!folderPath) return null;
+        if (!folderPath) {
+          return null;
+        }
 
         console.log("[dotlock] scanning folder:", folderPath);
         const envFiles = await scanFolder(folderPath);

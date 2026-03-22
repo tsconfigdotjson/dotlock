@@ -1,19 +1,19 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
-import type { KeyEntry, Repo } from "../types";
-import { PROVIDERS } from "../data/mockData";
 import { useRepos } from "../App";
+import { PROVIDERS } from "../data/mockData";
+import type { KeyEntry, Repo } from "../types";
 import { timeAgo } from "../utils";
 import {
-  LockIcon,
-  ChevronLeftIcon,
+  CheckIcon,
   ChevronDownIcon,
-  FileIcon,
+  ChevronLeftIcon,
+  CopyIcon,
   EyeIcon,
   EyeSlashIcon,
-  CopyIcon,
-  CheckIcon,
+  FileIcon,
+  LockIcon,
   PencilIcon,
   XIcon,
 } from "./icons";
@@ -63,10 +63,7 @@ function EditKeyModal({
         {/* Modal header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-white/[0.06]">
           <div className="flex items-center gap-2.5">
-            <LockIcon
-              size={16}
-              className="text-gray-400 dark:text-gray-500"
-            />
+            <LockIcon size={16} className="text-gray-400 dark:text-gray-500" />
             <h2 className="text-[15px] font-semibold font-mono text-gray-900 dark:text-gray-100">
               {entry.name}
             </h2>
@@ -351,10 +348,7 @@ function EnvFileSection({
             open ? "" : "-rotate-90"
           }`}
         />
-        <FileIcon
-          size={16}
-          className="text-gray-400 dark:text-gray-500"
-        />
+        <FileIcon size={16} className="text-gray-400 dark:text-gray-500" />
         <h2 className="text-[13px] font-semibold font-mono text-gray-500 dark:text-gray-400">
           {filename}
         </h2>
@@ -436,7 +430,7 @@ export function RepoDetail() {
       {/* Key list */}
       <div className="flex-1 overflow-y-auto p-6">
         <div className="space-y-6">
-          {repo.envFiles.map((envFile, i) => (
+          {repo.envFiles.map((envFile, _i) => (
             <EnvFileSection
               key={envFile.filename}
               filename={envFile.filename}

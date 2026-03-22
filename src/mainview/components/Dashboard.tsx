@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
-import type { Repo } from "../types";
 import { useRepos } from "../App";
+import type { Repo } from "../types";
 import { getGreeting } from "../utils";
-import { FolderIcon, FileIcon, LockIcon, PlusIcon } from "./icons";
+import { FileIcon, FolderIcon, LockIcon, PlusIcon } from "./icons";
 
 function getTotalKeys(repo: Repo): number {
   return repo.envFiles.reduce((sum, f) => sum + f.keys.length, 0);

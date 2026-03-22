@@ -1,5 +1,6 @@
+import type { Dirent } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
-import { join, relative, dirname } from "node:path";
+import { dirname, join, relative } from "node:path";
 import type { EnvFile, KeyEntry } from "../shared/types";
 
 const IGNORE_DIRS = new Set([
@@ -26,12 +27,14 @@ function parseEnvFile(content: string): KeyEntry[] {
 
   for (const line of content.split("\n")) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
+    }
 
-    const match = trimmed.match(
-      /^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)/,
-    );
-    if (!match) continue;
+    const match = trimmed.match(/^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)/);
+    if (!match) {
+      continue;
+    }
 
     const [, name, rawValue] = match;
     let value = rawValue;
@@ -54,7 +57,7 @@ export async function scanFolder(folderPath: string): Promise<EnvFile[]> {
   const envFiles: EnvFile[] = [];
 
   async function walk(dir: string) {
-    let entries;
+    let entries: Dirent[];
     try {
       entries = await readdir(dir, { withFileTypes: true });
     } catch {
@@ -73,9 +76,7 @@ export async function scanFolder(folderPath: string): Promise<EnvFile[]> {
           const keys = parseEnvFile(content);
           if (keys.length > 0) {
             const relDir = relative(folderPath, dirname(fullPath));
-            const filename = relDir
-              ? `${entry.name} (${relDir})`
-              : entry.name;
+            const filename = relDir ? `${entry.name} (${relDir})` : entry.name;
             envFiles.push({ filename, keys });
           }
         } catch {

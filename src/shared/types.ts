@@ -22,8 +22,8 @@ export type Repo = {
 export type DotlockRPC = {
   bun: RPCSchema<{
     requests: {
-      selectFolder: { params: {}; response: Repo | null };
-      getRepos: { params: {}; response: Repo[] };
+      selectFolder: { params: Record<string, never>; response: Repo | null };
+      getRepos: { params: Record<string, never>; response: Repo[] };
       getRepo: { params: { name: string }; response: Repo | null };
       removeRepo: { params: { name: string }; response: boolean };
     };

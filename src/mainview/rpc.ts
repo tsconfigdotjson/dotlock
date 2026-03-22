@@ -1,20 +1,30 @@
-import type { Repo } from "../shared/types";
+import type { DotlockRPC, Repo } from "../shared/types";
+
+// Derive the webview→bun request proxy from the DotlockRPC schema.
+// electrobun doesn't export RPCRequestsProxy, so we map it ourselves.
+type BunRequests = DotlockRPC["bun"]["requests"];
+type DotlockRPCClient = {
+  request: {
+    [K in keyof BunRequests]: (
+      params: BunRequests[K]["params"],
+    ) => Promise<BunRequests[K]["response"]>;
+  };
+};
 
 // The RPC instance is set up by initRPC() after the Electroview module loads.
 // We store the rpc object here so the typed wrapper functions can use it.
-let rpc: any = null;
+let rpc: DotlockRPCClient | null = null;
 
 export async function initRPC(): Promise<void> {
-  console.log(
-    "[dotlock] initRPC: __electrobun =",
-    !!(window as any).__electrobun,
-  );
-  if (!(window as any).__electrobun) return;
+  console.log("[dotlock] initRPC: __electrobun =", !!window.__electrobun);
+  if (!window.__electrobun) {
+    return;
+  }
 
   try {
     const { Electroview } = await import("electrobun/view");
     console.log("[dotlock] Electroview loaded");
-    const rpcInstance = Electroview.defineRPC({
+    const rpcInstance = Electroview.defineRPC<DotlockRPC>({
       maxRequestTime: 120_000,
       handlers: {
         requests: {},
@@ -31,7 +41,9 @@ export async function initRPC(): Promise<void> {
 
 export async function selectFolder(): Promise<Repo | null> {
   console.log("[dotlock] selectFolder called, rpc =", !!rpc);
-  if (!rpc) return null;
+  if (!rpc) {
+    return null;
+  }
   try {
     const result = await rpc.request.selectFolder({});
     console.log("[dotlock] selectFolder result:", result);
@@ -44,7 +56,9 @@ export async function selectFolder(): Promise<Repo | null> {
 
 export async function getRepos(): Promise<Repo[]> {
   console.log("[dotlock] getRepos called, rpc =", !!rpc);
-  if (!rpc) return [];
+  if (!rpc) {
+    return [];
+  }
   try {
     const result = await rpc.request.getRepos({});
     console.log("[dotlock] getRepos result:", result);
@@ -56,7 +70,9 @@ export async function getRepos(): Promise<Repo[]> {
 }
 
 export async function getRepo(name: string): Promise<Repo | null> {
-  if (!rpc) return null;
+  if (!rpc) {
+    return null;
+  }
   try {
     return await rpc.request.getRepo({ name });
   } catch (e) {
@@ -66,7 +82,9 @@ export async function getRepo(name: string): Promise<Repo | null> {
 }
 
 export async function removeRepo(name: string): Promise<boolean> {
-  if (!rpc) return false;
+  if (!rpc) {
+    return false;
+  }
   try {
     return await rpc.request.removeRepo({ name });
   } catch (e) {

@@ -1,5 +1,5 @@
 import type { Theme } from "../types";
-import { SunIcon, MonitorIcon, MoonIcon } from "./icons";
+import { MonitorIcon, MoonIcon, SunIcon } from "./icons";
 
 export function ThemeToggle({
   theme,

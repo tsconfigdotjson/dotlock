@@ -1,13 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
+import { Dashboard } from "./components/Dashboard";
+import { FolderIcon, KeyIcon, LockIcon } from "./components/icons";
+import { RepoDetail } from "./components/RepoDetail";
+import { SidebarLink } from "./components/SidebarLink";
+import { ThemeToggle } from "./components/ThemeToggle";
+import * as rpc from "./rpc";
 import type { Repo, Theme } from "./types";
 import { applyTheme } from "./utils";
-import * as rpc from "./rpc";
-import { LockIcon, FolderIcon, KeyIcon } from "./components/icons";
-import { ThemeToggle } from "./components/ThemeToggle";
-import { SidebarLink } from "./components/SidebarLink";
-import { Dashboard } from "./components/Dashboard";
-import { RepoDetail } from "./components/RepoDetail";
 
 type RepoContextType = {
   repos: Repo[];
