@@ -502,7 +502,10 @@ describe("restoreFile", () => {
     // Add a second env file
     const envPath2 = join(envPath.replace(".env", ""), "..", ".env.production");
     writeFileSync(envPath2, "B=2\n", "utf-8");
-    const repo = vault.getDB().get("proj")!;
+    const repo = vault.getDB().get("proj");
+    if (!repo) {
+      throw new Error("repo not found");
+    }
     repo.envFiles.push({
       filename: ".env.production",
       absolutePath: envPath2,
