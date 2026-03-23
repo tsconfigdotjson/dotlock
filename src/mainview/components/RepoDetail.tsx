@@ -457,6 +457,19 @@ function KeyRow({
   const [provider, setProvider] = useState(entry.provider || "");
   const [showProviderMenu, setShowProviderMenu] = useState(false);
 
+  useEffect(() => {
+    setProvider(entry.provider || "");
+  }, [entry.provider]);
+
+  const handleProviderChange = async (p: string) => {
+    setProvider(p);
+    setShowProviderMenu(false);
+    const updated = await rpc.editKey(repoName, absolutePath, entry.name, entry.value, p);
+    if (updated) {
+      onSaved(updated);
+    }
+  };
+
   const handleCopy = () => {
     navigator.clipboard.writeText(entry.value);
     setCopied(true);
@@ -502,10 +515,7 @@ function KeyRow({
                     {provider && (
                       <button
                         type="button"
-                        onClick={() => {
-                          setProvider("");
-                          setShowProviderMenu(false);
-                        }}
+                        onClick={() => handleProviderChange("")}
                         className="w-full text-left px-3 py-1.5 text-[12px] text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-white/[0.05]"
                       >
                         None
@@ -515,10 +525,7 @@ function KeyRow({
                       <button
                         type="button"
                         key={p}
-                        onClick={() => {
-                          setProvider(p);
-                          setShowProviderMenu(false);
-                        }}
+                        onClick={() => handleProviderChange(p)}
                         className={`w-full text-left px-3 py-1.5 text-[12px] hover:bg-gray-50 dark:hover:bg-white/[0.05] transition-colors ${
                           provider === p
                             ? "font-medium text-gray-900 dark:text-white"
