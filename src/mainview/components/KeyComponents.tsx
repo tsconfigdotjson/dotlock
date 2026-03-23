@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import type { KeyEntry, Repo } from "../types";
 import * as rpc from "../rpc";
+import type { KeyEntry, Repo } from "../types";
 import { timeAgo } from "../utils";
 import {
   CheckIcon,

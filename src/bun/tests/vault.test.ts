@@ -30,10 +30,12 @@ describe("VaultManager.createVault", () => {
   test("creates a valid .dotlock file and unlocks", async () => {
     const vault = new VaultManager();
     expect(vault.getState()).toBe("no_vault");
+    expect(vault.getVaultPath()).toBeNull();
 
     await vault.createVault(testFile, "test-password");
 
     expect(vault.getState()).toBe("unlocked");
+    expect(vault.getVaultPath()).toBe(testFile);
     expect(existsSync(testFile)).toBe(true);
     expect(vault.getDB().getAll()).toEqual([]);
   });
@@ -129,6 +131,12 @@ describe("VaultManager.lock", () => {
     await vault.createVault(testFile, "password");
     vault.lock();
     expect(vault.save()).rejects.toThrow("Cannot save");
+  });
+
+  test("lock on fresh vault sets state to no_vault", () => {
+    const vault = new VaultManager();
+    vault.lock();
+    expect(vault.getState()).toBe("no_vault");
   });
 });
 
