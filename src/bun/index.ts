@@ -10,7 +10,7 @@ import {
 import type { DotlockRPC } from "../shared/types";
 import { deletePassword, retrievePassword, storePassword } from "./keychain";
 import { addRecentVault, getRecentVaults } from "./recentVaults";
-import { parseEnvFile, scanFolder } from "./scanner";
+import { parseEnvFile, rebuildRawContent, scanFolder } from "./scanner";
 import { VaultManager } from "./vault";
 import { fileWatcher } from "./watcher";
 
@@ -271,6 +271,74 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
         } catch {
           return null;
         }
+      },
+      editKey: async ({ repoName, absolutePath, keyName, value, provider }) => {
+        if (vault.getState() !== "unlocked") return null;
+        const db = vault.getDB();
+        const repo = db.get(repoName);
+        if (!repo) return null;
+
+        const envFile = repo.envFiles.find(
+          (f) => f.absolutePath === absolutePath,
+        );
+        if (!envFile) return null;
+
+        const key = envFile.keys.find((k) => k.name === keyName);
+        if (!key) return null;
+
+        const today = new Date().toISOString().split("T")[0];
+        if (key.value !== value) {
+          key.lastRotated = today;
+        }
+        key.value = value;
+        key.provider = provider || undefined;
+
+        envFile.rawContent = rebuildRawContent(envFile.keys);
+        await vault.save();
+        return db.get(repoName);
+      },
+
+      deleteKey: async ({ repoName, absolutePath, keyName }) => {
+        if (vault.getState() !== "unlocked") return null;
+        const db = vault.getDB();
+        const repo = db.get(repoName);
+        if (!repo) return null;
+
+        const envFile = repo.envFiles.find(
+          (f) => f.absolutePath === absolutePath,
+        );
+        if (!envFile) return null;
+
+        envFile.keys = envFile.keys.filter((k) => k.name !== keyName);
+        envFile.rawContent = rebuildRawContent(envFile.keys);
+        await vault.save();
+        return db.get(repoName);
+      },
+
+      addKey: async ({ repoName, absolutePath, keyName, value, provider }) => {
+        if (vault.getState() !== "unlocked") return null;
+        const db = vault.getDB();
+        const repo = db.get(repoName);
+        if (!repo) return null;
+
+        const envFile = repo.envFiles.find(
+          (f) => f.absolutePath === absolutePath,
+        );
+        if (!envFile) return null;
+
+        if (envFile.keys.some((k) => k.name === keyName)) return null;
+
+        const today = new Date().toISOString().split("T")[0];
+        envFile.keys.push({
+          name: keyName,
+          value,
+          provider: provider || undefined,
+          addedAt: today,
+        });
+
+        envFile.rawContent = rebuildRawContent(envFile.keys);
+        await vault.save();
+        return db.get(repoName);
       },
     },
     messages: {},

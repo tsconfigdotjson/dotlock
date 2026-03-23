@@ -175,3 +175,42 @@ export function restoreFile(
     null,
   );
 }
+
+export function editKey(
+  repoName: string,
+  absolutePath: string,
+  keyName: string,
+  value: string,
+  provider: string,
+): Promise<Repo | null> {
+  return rpcCall(
+    (r) =>
+      r.request.editKey({ repoName, absolutePath, keyName, value, provider }),
+    null,
+  );
+}
+
+export function deleteKey(
+  repoName: string,
+  absolutePath: string,
+  keyName: string,
+): Promise<Repo | null> {
+  return rpcCall(
+    (r) => r.request.deleteKey({ repoName, absolutePath, keyName }),
+    null,
+  );
+}
+
+export function addKey(
+  repoName: string,
+  absolutePath: string,
+  keyName: string,
+  value: string,
+  provider: string,
+): Promise<Repo | null> {
+  return rpcCall(
+    (r) =>
+      r.request.addKey({ repoName, absolutePath, keyName, value, provider }),
+    null,
+  );
+}
