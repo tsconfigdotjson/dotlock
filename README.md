@@ -1,61 +1,68 @@
-# React + Tailwind + Vite Electrobun Template
+# dotlock
 
-A fast Electrobun desktop app template with React, Tailwind CSS, and Vite for hot module replacement (HMR).
+A macOS desktop app for managing `.env` files across your projects. dotlock encrypts your environment variables into a single vault file, watches for file changes on disk, and optionally protects your vault password with Touch ID.
+
+## Features
+
+- **Encrypted vault** — All secrets stored in a single `.dotlock` file using AES-256-GCM with scrypt key derivation
+- **Multi-repo management** — Track `.env` files across multiple projects from one place
+- **Drift detection** — Watches files on disk and alerts you when they change or go missing
+- **Touch ID support** — Store your vault password in the macOS Keychain with biometric unlock
+- **Import & restore** — Pull env files into the vault or push vault contents back to disk
+- **Provider detection** — Automatically tags keys by provider (AWS, Stripe, Vercel, etc.)
 
 ## Getting Started
+
+Requires [Bun](https://bun.sh) on macOS.
 
 ```bash
 # Install dependencies
 bun install
 
-# Development without HMR (uses bundled assets)
-bun run dev
-
-# Development with HMR (recommended)
+# Development with hot reload
 bun run dev:hmr
 
-# Build for production
-bun run build
+# Development without HMR
+bun run dev
 
-# Build for production release
-bun run build:prod
+# Run tests
+bun test
 ```
 
-## How HMR Works
+## Building
 
-When you run `bun run dev:hmr`:
+```bash
+# Build the keychain helper (requires Apple Developer certificate)
+bun run build:helpers
 
-1. **Vite dev server** starts on `http://localhost:5173` with HMR enabled
-2. **Electrobun** starts and detects the running Vite server
-3. The app loads from the Vite dev server instead of bundled assets
-4. Changes to React components update instantly without full page reload
+# Production build
+bun run build:canary
+```
 
-When you run `bun run dev` (without HMR):
-
-1. Electrobun starts and loads from `views://mainview/index.html`
-2. You need to rebuild (`bun run build`) to see changes
+The keychain helper is a signed Swift binary that handles Touch ID and Keychain access. Building it requires an Apple Developer certificate and a provisioning profile at `tools/keychain-helper.provisionprofile`.
 
 ## Project Structure
 
 ```
-├── src/
-│   ├── bun/
-│   │   └── index.ts        # Main process (Electrobun/Bun)
-│   └── mainview/
-│       ├── App.tsx         # React app component
-│       ├── main.tsx        # React entry point
-│       ├── index.html      # HTML template
-│       └── index.css       # Tailwind CSS
-├── electrobun.config.ts    # Electrobun configuration
-├── vite.config.ts          # Vite configuration
-├── tailwind.config.js      # Tailwind configuration
-└── package.json
+src/
+├── bun/           # Main process — vault, crypto, file watcher, keychain
+├── mainview/      # React frontend — UI components, routing, RPC client
+└── shared/        # Shared type definitions
+tools/             # Swift keychain helper source and build script
 ```
 
-## Customizing
+## How It Works
 
-- **React components**: Edit files in `src/mainview/`
-- **Tailwind theme**: Edit `tailwind.config.js`
-- **Vite settings**: Edit `vite.config.ts`
-- **Window settings**: Edit `src/bun/index.ts`
-- **App metadata**: Edit `electrobun.config.ts`
+dotlock runs as an [Electrobun](https://electrobun.dev) app. The main process handles encryption, file watching, and Keychain access. The frontend communicates with it over a typed RPC layer.
+
+Vault files use a custom binary format (`.dotlock`) containing scrypt KDF parameters, an AES-256-GCM encrypted payload, and an authentication tag. The entire vault — all repos and their env files — is serialized as JSON and encrypted as a single blob.
+
+File watching uses directory-level `fs.watch` (FSEvents on macOS) with debouncing, so it survives atomic writes and editor save patterns.
+
+## Tech Stack
+
+Electrobun · React · TypeScript · Tailwind CSS · Vite · Bun · Swift (keychain helper) · Biome (lint/format)
+
+## License
+
+Private
