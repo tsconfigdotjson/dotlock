@@ -128,3 +128,28 @@ export async function hasStoredPassword(_vaultPath: string): Promise<boolean> {
 export function isHelperAvailable(): boolean {
   return getHelperPath() !== null;
 }
+
+/** Read the system accent color from NSColor.controlAccentColor. */
+export async function getAccentColor(
+  helperOverride?: string,
+): Promise<string | null> {
+  const helper = helperOverride ?? getHelperPath();
+  if (!helper) {
+    return null;
+  }
+
+  try {
+    const proc = Bun.spawn([helper, "accent-color"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const code = await proc.exited;
+    if (code !== 0) {
+      return null;
+    }
+    const hex = await new Response(proc.stdout).text();
+    return hex || null;
+  } catch {
+    return null;
+  }
+}

@@ -95,6 +95,12 @@ export type DotlockRPC = {
         response: boolean;
       };
 
+      // Appearance
+      getAccentColor: {
+        params: Record<string, never>;
+        response: string | null;
+      };
+
       // Existing repo operations
       selectFolder: { params: Record<string, never>; response: Repo | null };
       getRepos: { params: Record<string, never>; response: Repo[] };

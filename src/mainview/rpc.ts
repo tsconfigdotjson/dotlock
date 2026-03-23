@@ -141,6 +141,12 @@ export function removeFromKeychain(vaultPath: string): Promise<boolean> {
   return rpcCall((r) => r.request.removeFromKeychain({ vaultPath }), false);
 }
 
+// ── Appearance ──────────────────────────────────────────────────────
+
+export function getAccentColor(): Promise<string | null> {
+  return rpcCall((r) => r.request.getAccentColor({}), null);
+}
+
 // ── Repo operations ─────────────────────────────────────────────────
 
 export function selectFolder(): Promise<Repo | null> {

@@ -7,7 +7,12 @@ import {
   Utils,
 } from "electrobun/bun";
 import type { DotlockRPC } from "../shared/types";
-import { deletePassword, retrievePassword, storePassword } from "./keychain";
+import {
+  deletePassword,
+  getAccentColor,
+  retrievePassword,
+  storePassword,
+} from "./keychain";
 import {
   addKey as addKeyOp,
   deleteKey as deleteKeyOp,
@@ -161,6 +166,10 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
         }
         return ok;
       },
+
+      // ── Appearance ────────────────────────────────────────────────
+
+      getAccentColor: async () => getAccentColor(),
 
       // ── Repo operations (require unlocked vault) ──────────────────
 
