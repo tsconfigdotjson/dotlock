@@ -162,8 +162,7 @@ export function Dashboard() {
               <Greeting />
               {repos.length > 0 && (
                 <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
-                  {repos.length}{" "}
-                  {repos.length === 1 ? "project" : "projects"},{" "}
+                  {repos.length} {repos.length === 1 ? "project" : "projects"},{" "}
                   {totalKeys} tracked keys
                   {totalDrift > 0 && (
                     <span className="text-amber-500 dark:text-amber-400">
