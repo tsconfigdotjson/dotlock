@@ -7,8 +7,16 @@ import {
   FileIcon,
   FolderIcon,
   LockIcon,
+  MoonIcon,
   PlusIcon,
+  SunIcon,
 } from "./icons";
+
+function GreetingIcon() {
+  const hour = new Date().getHours();
+  const Icon = hour < 17 ? SunIcon : MoonIcon;
+  return <Icon size={16} className="text-gray-400 dark:text-gray-500" />;
+}
 
 function getTotalKeys(repo: Repo): number {
   return repo.envFiles.reduce((sum, f) => sum + f.keys.length, 0);
@@ -152,8 +160,9 @@ export function Dashboard() {
           style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
         >
           <div>
-            <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              {getGreeting()}, Lee!
+            <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <GreetingIcon />
+              {getGreeting()}
             </h1>
           </div>
         </header>
@@ -169,8 +178,9 @@ export function Dashboard() {
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       >
         <div>
-          <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            {getGreeting()}, Lee!
+          <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <GreetingIcon />
+            {getGreeting()}
           </h1>
           <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
             {repos.length} {repos.length === 1 ? "project" : "projects"},{" "}

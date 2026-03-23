@@ -134,7 +134,7 @@ function UnlockedApp({
 
   return (
     <RepoContext.Provider value={{ repos, loading, addRepo, updateRepo }}>
-      <div className="h-screen flex bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100">
+      <div className="h-screen flex border-t border-gray-200/60 dark:border-transparent bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100">
         {/* Sidebar */}
         <aside className="w-52 shrink-0 flex flex-col border-r border-gray-200/60 dark:border-white/[0.06] bg-gray-50/80 dark:bg-[#252525]/80 backdrop-blur-xl">
           {/* Drag region / Logo */}
