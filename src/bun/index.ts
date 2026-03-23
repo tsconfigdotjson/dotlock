@@ -294,6 +294,7 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
         key.provider = provider || undefined;
 
         envFile.rawContent = rebuildRawContent(envFile.keys);
+        await writeFile(absolutePath, envFile.rawContent, "utf-8");
         await vault.save();
         return db.get(repoName);
       },
@@ -311,6 +312,7 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
 
         envFile.keys = envFile.keys.filter((k) => k.name !== keyName);
         envFile.rawContent = rebuildRawContent(envFile.keys);
+        await writeFile(absolutePath, envFile.rawContent, "utf-8");
         await vault.save();
         return db.get(repoName);
       },
@@ -337,6 +339,7 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
         });
 
         envFile.rawContent = rebuildRawContent(envFile.keys);
+        await writeFile(absolutePath, envFile.rawContent, "utf-8");
         await vault.save();
         return db.get(repoName);
       },
