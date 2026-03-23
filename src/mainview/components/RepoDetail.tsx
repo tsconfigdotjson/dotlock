@@ -2,8 +2,8 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import { driftCount, useRepos } from "../App";
-import type { EnvFile, Repo, SyncStatus } from "../types";
 import * as rpc from "../rpc";
+import type { EnvFile, Repo, SyncStatus } from "../types";
 import {
   AlertTriangleIcon,
   ArrowDownIcon,
