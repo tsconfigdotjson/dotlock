@@ -245,7 +245,9 @@ function KeyModal({
   }, [onClose]);
 
   const handleSave = async () => {
-    if (!canSubmit) return;
+    if (!canSubmit) {
+      return;
+    }
     setSaving(true);
     const updated =
       mode === "edit"

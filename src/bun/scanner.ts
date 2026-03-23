@@ -22,7 +22,7 @@ function isEnvFilename(name: string): boolean {
 }
 
 export function rebuildRawContent(keys: KeyEntry[]): string {
-  return keys.map((k) => `${k.name}=${k.value}`).join("\n") + "\n";
+  return `${keys.map((k) => `${k.name}=${k.value}`).join("\n")}\n`;
 }
 
 export function parseEnvFile(content: string): KeyEntry[] {
