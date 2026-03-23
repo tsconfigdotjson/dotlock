@@ -1,7 +1,7 @@
 /**
  * macOS Keychain + Touch ID integration via a signed helper binary.
  *
- * The helper at keychain-helper.app/Contents/MacOS/keychain-helper uses
+ * The helper at dotlock-keychain.app/Contents/MacOS/dotlock uses
  * SecAccessControl with .biometryCurrentSet for OS-enforced Touch ID.
  * It must be compiled and signed via tools/build-helpers.sh.
  */
@@ -13,10 +13,10 @@ const SERVICE = "dev.dotlock.vault";
 
 function getHelperPath(): string | null {
   const helperRelative = join(
-    "keychain-helper.app",
+    "dotlock-keychain.app",
     "Contents",
     "MacOS",
-    "keychain-helper",
+    "dotlock",
   );
 
   // Walk up from import.meta.dir to find project root (contains package.json)
