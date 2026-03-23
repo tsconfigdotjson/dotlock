@@ -290,7 +290,13 @@ export function KeyRow({
   const handleProviderChange = async (p: string) => {
     setProvider(p);
     setShowProviderMenu(false);
-    const updated = await rpc.editKey(repoName, absolutePath, entry.name, entry.value, p);
+    const updated = await rpc.editKey(
+      repoName,
+      absolutePath,
+      entry.name,
+      entry.value,
+      p,
+    );
     if (updated) {
       onSaved(updated);
     }

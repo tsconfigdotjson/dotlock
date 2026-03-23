@@ -37,11 +37,11 @@ export function ProviderDetail() {
             if (!result.has(repo.name)) {
               result.set(repo.name, new Map());
             }
-            const repoMap = result.get(repo.name)!;
+            const repoMap = result.get(repo.name) as Map<string, ProviderKey[]>;
             if (!repoMap.has(envFile.absolutePath)) {
               repoMap.set(envFile.absolutePath, []);
             }
-            repoMap.get(envFile.absolutePath)!.push({
+            (repoMap.get(envFile.absolutePath) as ProviderKey[]).push({
               entry: key,
               repoName: repo.name,
               absolutePath: envFile.absolutePath,
@@ -131,17 +131,15 @@ export function ProviderDetail() {
         <div className="space-y-6">
           {Array.from(grouped.entries()).map(([repoName, envFileMap]) => (
             <div key={repoName}>
-              {Array.from(envFileMap.entries()).map(
-                ([absolutePath, keys]) => (
-                  <ProviderEnvSection
-                    key={absolutePath}
-                    repoName={repoName}
-                    envFilename={keys[0].envFilename}
-                    keys={keys}
-                    onSaved={handleSaved}
-                  />
-                ),
-              )}
+              {Array.from(envFileMap.entries()).map(([absolutePath, keys]) => (
+                <ProviderEnvSection
+                  key={absolutePath}
+                  repoName={repoName}
+                  envFilename={keys[0].envFilename}
+                  keys={keys}
+                  onSaved={handleSaved}
+                />
+              ))}
             </div>
           ))}
         </div>
