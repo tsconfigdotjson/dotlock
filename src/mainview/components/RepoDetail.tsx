@@ -164,7 +164,7 @@ function SyncActions({
   };
 
   return (
-    <div className="flex items-center gap-1.5 ml-auto">
+    <div className="flex items-center gap-1.5">
       {envFile.syncStatus === "disk_changed" && (
         <button
           type="button"
@@ -652,23 +652,25 @@ function EnvFileSection({
           </span>
         </button>
 
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          className="p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
-          title="Add key"
-        >
-          <PlusIcon size={14} />
-        </button>
-
         <SyncBadge status={envFile.syncStatus} />
-        {hasDrift && (
-          <SyncActions
-            repoName={repoName}
-            envFile={envFile}
-            onResolved={onResolved}
-          />
-        )}
+
+        <div className="ml-auto flex items-center gap-1.5">
+          {hasDrift && (
+            <SyncActions
+              repoName={repoName}
+              envFile={envFile}
+              onResolved={onResolved}
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+            title="Add key"
+          >
+            <PlusIcon size={14} />
+          </button>
+        </div>
       </div>
 
       {open && (
