@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import type { InMemoryDB } from "./db";
 
-const DEBOUNCE_MS = 300;
+const DEFAULT_DEBOUNCE_MS = 300;
 
 /**
  * Watches parent directories (not individual files) for changes.
@@ -24,6 +24,7 @@ class FileWatcher {
   private onChange: ((repoName: string) => void) | null = null;
   /** Callback to get the current InMemoryDB (provided by VaultManager) */
   private getDB: (() => InMemoryDB) | null = null;
+  private debounceMs = DEFAULT_DEBOUNCE_MS;
 
   setGetDB(fn: () => InMemoryDB): void {
     this.getDB = fn;
@@ -31,6 +32,10 @@ class FileWatcher {
 
   setOnChange(cb: (repoName: string) => void): void {
     this.onChange = cb;
+  }
+
+  setDebounceMs(ms: number): void {
+    this.debounceMs = ms;
   }
 
   private db(): InMemoryDB | null {
@@ -137,7 +142,7 @@ class FileWatcher {
       setTimeout(() => {
         this.timers.delete(absolutePath);
         this.checkFile(repoName, absolutePath);
-      }, DEBOUNCE_MS),
+      }, this.debounceMs),
     );
   }
 

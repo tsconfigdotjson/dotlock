@@ -13,10 +13,13 @@ const TEST_DIR = join(tmpdir(), "dotlock-watcher-tests", `run-${Date.now()}`);
  * reliably delivers events. This constant is used after watchRepo() in every
  * async test to avoid flaky misses.
  */
-const FSEVENTS_SETTLE_MS = 150;
+const FSEVENTS_SETTLE_MS = 100;
 
-/** Debounce (300ms) + generous buffer for timer + async checkFile. */
-const DEBOUNCE_WAIT_MS = 500;
+/** Use a fast debounce in tests (50ms instead of the default 300ms). */
+const TEST_DEBOUNCE_MS = 50;
+
+/** Debounce + buffer for timer + async checkFile. */
+const DEBOUNCE_WAIT_MS = TEST_DEBOUNCE_MS + 100;
 
 /** Build a Repo object with one env file for testing. */
 function makeRepo(name: string, filePath: string, rawContent: string): Repo {
@@ -60,6 +63,7 @@ beforeEach(() => {
   db = new InMemoryDB();
   fileWatcher.setGetDB(() => db);
   fileWatcher.setOnChange(() => {});
+  fileWatcher.setDebounceMs(TEST_DEBOUNCE_MS);
 });
 
 afterEach(() => {
@@ -317,10 +321,10 @@ describe("debouncing", () => {
     fileWatcher.watchRepo("debounce-repo", [filePath]);
     await Bun.sleep(FSEVENTS_SETTLE_MS);
 
-    // Rapid-fire writes within the 300ms debounce window
+    // Rapid-fire writes within the debounce window
     for (let i = 0; i < 5; i++) {
       writeFileSync(filePath, `KEY=change-${i}`);
-      await Bun.sleep(50);
+      await Bun.sleep(10);
     }
 
     // Wait for debounce to settle

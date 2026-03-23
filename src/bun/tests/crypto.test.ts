@@ -173,4 +173,65 @@ describe("serializeVaultFile / parseVaultFile", () => {
     blob.set(kdfLen, magic.length + version.length);
     expect(() => parseVaultFile(blob)).toThrow("KDF params truncated");
   });
+
+  test("missing KDF params length throws", () => {
+    // magic (6) + version (2) = 8 bytes, but no room for kdfLen (4 bytes)
+    const magic = new Uint8Array([0x44, 0x4f, 0x54, 0x4c, 0x43, 0x4b]);
+    const version = new Uint8Array(2);
+    new DataView(version.buffer).setUint16(0, 1, false);
+    const blob = new Uint8Array(magic.length + version.length);
+    blob.set(magic, 0);
+    blob.set(version, magic.length);
+    expect(() => parseVaultFile(blob)).toThrow("missing KDF params length");
+  });
+
+  test("missing IV throws", () => {
+    const magic = new Uint8Array([0x44, 0x4f, 0x54, 0x4c, 0x43, 0x4b]);
+    const version = new Uint8Array(2);
+    new DataView(version.buffer).setUint16(0, 1, false);
+    const kdfJSON = new TextEncoder().encode("{}");
+    const kdfLen = new Uint8Array(4);
+    new DataView(kdfLen.buffer).setUint32(0, kdfJSON.length, false);
+    // No IV bytes after KDF
+    const blob = new Uint8Array(
+      magic.length + version.length + kdfLen.length + kdfJSON.length,
+    );
+    let off = 0;
+    blob.set(magic, off);
+    off += magic.length;
+    blob.set(version, off);
+    off += version.length;
+    blob.set(kdfLen, off);
+    off += kdfLen.length;
+    blob.set(kdfJSON, off);
+    expect(() => parseVaultFile(blob)).toThrow("missing IV");
+  });
+
+  test("missing auth tag throws", () => {
+    const magic = new Uint8Array([0x44, 0x4f, 0x54, 0x4c, 0x43, 0x4b]);
+    const version = new Uint8Array(2);
+    new DataView(version.buffer).setUint16(0, 1, false);
+    const kdfJSON = new TextEncoder().encode("{}");
+    const kdfLen = new Uint8Array(4);
+    new DataView(kdfLen.buffer).setUint32(0, kdfJSON.length, false);
+    const iv = new Uint8Array(12); // 12-byte IV present, but no auth tag
+    const blob = new Uint8Array(
+      magic.length +
+        version.length +
+        kdfLen.length +
+        kdfJSON.length +
+        iv.length,
+    );
+    let off = 0;
+    blob.set(magic, off);
+    off += magic.length;
+    blob.set(version, off);
+    off += version.length;
+    blob.set(kdfLen, off);
+    off += kdfLen.length;
+    blob.set(kdfJSON, off);
+    off += kdfJSON.length;
+    blob.set(iv, off);
+    expect(() => parseVaultFile(blob)).toThrow("missing auth tag");
+  });
 });

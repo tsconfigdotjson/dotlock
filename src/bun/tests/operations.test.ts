@@ -173,6 +173,19 @@ describe("editKey", () => {
     expect(result).toBeNull();
   });
 
+  test("returns null for nonexistent env file path", async () => {
+    setupRepo("proj", "KEY=val\n");
+    const result = await editKey(
+      vault,
+      "proj",
+      "/nonexistent/.env",
+      "KEY",
+      "v",
+      "",
+    );
+    expect(result).toBeNull();
+  });
+
   test("does not modify other keys", async () => {
     const { envPath } = setupRepo("proj", "A=1\nB=2\n");
 
@@ -239,6 +252,12 @@ describe("deleteKey", () => {
 
   test("returns null for nonexistent repo", async () => {
     const result = await deleteKey(vault, "nope", "/fake/.env", "K");
+    expect(result).toBeNull();
+  });
+
+  test("returns null for nonexistent env file path", async () => {
+    setupRepo("proj", "KEY=val\n");
+    const result = await deleteKey(vault, "proj", "/nonexistent/.env", "KEY");
     expect(result).toBeNull();
   });
 
@@ -331,6 +350,19 @@ describe("addKey", () => {
 
   test("returns null for nonexistent repo", async () => {
     const result = await addKey(vault, "nope", "/fake/.env", "K", "v", "");
+    expect(result).toBeNull();
+  });
+
+  test("returns null for nonexistent env file path", async () => {
+    setupRepo("proj", "KEY=val\n");
+    const result = await addKey(
+      vault,
+      "proj",
+      "/nonexistent/.env",
+      "NEW",
+      "v",
+      "",
+    );
     expect(result).toBeNull();
   });
 
@@ -494,6 +526,29 @@ describe("restoreFile", () => {
   test("returns null for nonexistent env file path", async () => {
     setupRepo("proj", "KEY=val\n");
     const result = await restoreFile(vault, "proj", "/nonexistent/.env");
+    expect(result).toBeNull();
+  });
+
+  test("returns null when disk write fails", async () => {
+    const projectDir = nextDir();
+    mkdirSync(projectDir, { recursive: true });
+    // Use a path where the parent directory doesn't exist
+    const badPath = join(projectDir, "nonexistent-subdir", "deep", ".env");
+    vault.getDB().add({
+      name: "bad-write",
+      path: projectDir,
+      envFiles: [
+        {
+          filename: ".env",
+          absolutePath: badPath,
+          rawContent: "KEY=val\n",
+          keys: [{ name: "KEY", value: "val" }],
+          syncStatus: "disk_changed",
+        },
+      ],
+    });
+
+    const result = await restoreFile(vault, "bad-write", badPath);
     expect(result).toBeNull();
   });
 

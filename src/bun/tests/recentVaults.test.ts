@@ -99,6 +99,16 @@ describe("recentVaults", () => {
     expect(result.length).toBe(0);
   });
 
+  test("creates data directory if it does not exist", async () => {
+    const newDir = join(TEST_DIR, "auto-created-subdir");
+    setDataDir(newDir);
+    expect(existsSync(newDir)).toBe(false);
+
+    const result = await getRecentVaults();
+    expect(result).toEqual([]);
+    expect(existsSync(newDir)).toBe(true);
+  });
+
   test("filters out non-existent files", async () => {
     const recentsPath = join(TEST_DIR, "recent-vaults.json");
     writeFileSync(

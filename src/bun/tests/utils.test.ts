@@ -1,9 +1,43 @@
-import { describe, expect, test } from "bun:test";
-import { timeAgo } from "../../mainview/utils";
+import { afterEach, describe, expect, test } from "bun:test";
+import { getGreeting, timeAgo } from "../../mainview/utils";
 
-// Note: getGreeting() depends on current time and is hard to test without
-// mocking Date. applyTheme() depends on DOM (document/window).
-// timeAgo() is the most valuable utility to test as it has date math.
+describe("getGreeting", () => {
+  const originalGetHours = Date.prototype.getHours;
+
+  afterEach(() => {
+    Date.prototype.getHours = originalGetHours;
+  });
+
+  test("returns Good morning before noon", () => {
+    Date.prototype.getHours = () => 9;
+    expect(getGreeting()).toBe("Good morning");
+  });
+
+  test("returns Good afternoon between noon and 5pm", () => {
+    Date.prototype.getHours = () => 14;
+    expect(getGreeting()).toBe("Good afternoon");
+  });
+
+  test("returns Good evening after 5pm", () => {
+    Date.prototype.getHours = () => 20;
+    expect(getGreeting()).toBe("Good evening");
+  });
+
+  test("returns Good morning at midnight", () => {
+    Date.prototype.getHours = () => 0;
+    expect(getGreeting()).toBe("Good morning");
+  });
+
+  test("returns Good afternoon at noon exactly", () => {
+    Date.prototype.getHours = () => 12;
+    expect(getGreeting()).toBe("Good afternoon");
+  });
+
+  test("returns Good evening at 5pm exactly", () => {
+    Date.prototype.getHours = () => 17;
+    expect(getGreeting()).toBe("Good evening");
+  });
+});
 
 describe("timeAgo", () => {
   function daysAgoISO(days: number): string {
