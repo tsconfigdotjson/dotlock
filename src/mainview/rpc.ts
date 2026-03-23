@@ -1,4 +1,4 @@
-import type { DotlockRPC, Repo } from "../shared/types";
+import type { DotlockRPC, Repo, VaultMeta, VaultState } from "../shared/types";
 
 // Derive the webview→bun request proxy from the DotlockRPC schema.
 // electrobun doesn't export RPCRequestsProxy, so we map it ourselves.
@@ -19,9 +19,18 @@ let rpc: DotlockRPCClient | null = null;
 type SyncChangedCallback = (repoName: string) => void;
 let syncChangedCallback: SyncChangedCallback | null = null;
 
+// Callback for when vault state changes.
+type VaultStateCallback = (state: VaultState) => void;
+let vaultStateCallback: VaultStateCallback | null = null;
+
 /** Register a callback to be notified when the watcher detects file drift. */
 export function onSyncChanged(cb: SyncChangedCallback): void {
   syncChangedCallback = cb;
+}
+
+/** Register a callback to be notified when vault state changes. */
+export function onVaultStateChanged(cb: VaultStateCallback): void {
+  vaultStateCallback = cb;
 }
 
 export async function initRPC(): Promise<void> {
@@ -54,11 +63,153 @@ export async function initRPC(): Promise<void> {
       },
     );
 
+    // Listen for vault state changes
+    rpcInstance.addMessageListener(
+      "vaultStateChanged",
+      ({ state }: { state: VaultState }) => {
+        console.log("[dotlock] vaultStateChanged push:", state);
+        if (vaultStateCallback) {
+          vaultStateCallback(state);
+        }
+      },
+    );
+
     console.log("[dotlock] RPC initialized successfully");
   } catch (e) {
     console.warn("[dotlock] Electrobun RPC not available:", e);
   }
 }
+
+// ── Vault lifecycle ─────────────────────────────────────────────────
+
+export async function getVaultState(): Promise<VaultState> {
+  if (!rpc) return "no_vault";
+  try {
+    return await rpc.request.getVaultState({});
+  } catch (e) {
+    console.error("[dotlock] getVaultState error:", e);
+    return "no_vault";
+  }
+}
+
+export async function getRecentVaults(): Promise<VaultMeta[]> {
+  if (!rpc) return [];
+  try {
+    return await rpc.request.getRecentVaults({});
+  } catch (e) {
+    console.error("[dotlock] getRecentVaults error:", e);
+    return [];
+  }
+}
+
+export async function createVault(
+  path: string,
+  password: string,
+): Promise<boolean> {
+  if (!rpc) return false;
+  try {
+    return await rpc.request.createVault({ path, password });
+  } catch (e) {
+    console.error("[dotlock] createVault error:", e);
+    return false;
+  }
+}
+
+export async function openVault(
+  path: string,
+  password: string,
+): Promise<boolean> {
+  if (!rpc) return false;
+  try {
+    return await rpc.request.openVault({ path, password });
+  } catch (e) {
+    console.error("[dotlock] openVault error:", e);
+    return false;
+  }
+}
+
+export async function lockVault(): Promise<boolean> {
+  if (!rpc) return false;
+  try {
+    return await rpc.request.lockVault({});
+  } catch (e) {
+    console.error("[dotlock] lockVault error:", e);
+    return false;
+  }
+}
+
+export async function pickVaultFile(): Promise<string | null> {
+  if (!rpc) return null;
+  try {
+    return await rpc.request.pickVaultFile({});
+  } catch (e) {
+    console.error("[dotlock] pickVaultFile error:", e);
+    return null;
+  }
+}
+
+export async function pickVaultFolder(): Promise<string | null> {
+  if (!rpc) return null;
+  try {
+    return await rpc.request.pickVaultFolder({});
+  } catch (e) {
+    console.error("[dotlock] pickVaultFolder error:", e);
+    return null;
+  }
+}
+
+// ── Keychain / Touch ID ─────────────────────────────────────────────
+
+export async function hasKeychainPassword(
+  vaultPath: string,
+): Promise<boolean> {
+  if (!rpc) return false;
+  try {
+    return await rpc.request.hasKeychainPassword({ vaultPath });
+  } catch (e) {
+    console.error("[dotlock] hasKeychainPassword error:", e);
+    return false;
+  }
+}
+
+export async function storeInKeychain(
+  vaultPath: string,
+  password: string,
+): Promise<boolean> {
+  if (!rpc) return false;
+  try {
+    return await rpc.request.storeInKeychain({ vaultPath, password });
+  } catch (e) {
+    console.error("[dotlock] storeInKeychain error:", e);
+    return false;
+  }
+}
+
+export async function retrieveFromKeychain(
+  vaultPath: string,
+): Promise<string | null> {
+  if (!rpc) return null;
+  try {
+    return await rpc.request.retrieveFromKeychain({ vaultPath });
+  } catch (e) {
+    console.error("[dotlock] retrieveFromKeychain error:", e);
+    return null;
+  }
+}
+
+export async function removeFromKeychain(
+  vaultPath: string,
+): Promise<boolean> {
+  if (!rpc) return false;
+  try {
+    return await rpc.request.removeFromKeychain({ vaultPath });
+  } catch (e) {
+    console.error("[dotlock] removeFromKeychain error:", e);
+    return false;
+  }
+}
+
+// ── Repo operations ─────────────────────────────────────────────────
 
 export async function selectFolder(): Promise<Repo | null> {
   console.log("[dotlock] selectFolder called, rpc =", !!rpc);

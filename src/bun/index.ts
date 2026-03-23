@@ -8,12 +8,23 @@ import {
   Utils,
 } from "electrobun/bun";
 import type { DotlockRPC } from "../shared/types";
-import { db } from "./db";
+import { VaultManager } from "./vault";
 import { parseEnvFile, scanFolder } from "./scanner";
 import { fileWatcher } from "./watcher";
+import { addRecentVault, getRecentVaults } from "./recentVaults";
+import {
+  deletePassword,
+  retrievePassword,
+  storePassword,
+} from "./keychain";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
+
+const vault = new VaultManager();
+
+// Wire the watcher to use the vault's db
+fileWatcher.setGetDB(() => vault.getDB());
 
 // Check if Vite dev server is running for HMR
 async function getMainViewUrl(): Promise<string> {
@@ -36,7 +47,126 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
   maxRequestTime: 120_000,
   handlers: {
     requests: {
+      // ── Vault lifecycle ───────────────────────────────────────────
+
+      getVaultState: () => vault.getState(),
+
+      getRecentVaults: async () => getRecentVaults(),
+
+      createVault: async ({ path, password }) => {
+        try {
+          await vault.createVault(path, password);
+          const recents = await getRecentVaults();
+          const existing = recents.find((r) => r.path === path);
+          await addRecentVault({
+            ...existing,
+            path,
+            name: basename(path, ".dotlock"),
+            lastOpened: new Date().toISOString(),
+          });
+          rpc.send.vaultStateChanged({ state: "unlocked" });
+          return true;
+        } catch (e) {
+          console.error("[dotlock] createVault failed:", e);
+          return false;
+        }
+      },
+
+      openVault: async ({ path, password }) => {
+        try {
+          await vault.openVault(path, password);
+          const recents = await getRecentVaults();
+          const existing = recents.find((r) => r.path === path);
+          await addRecentVault({
+            ...existing,
+            path,
+            name: basename(path, ".dotlock"),
+            lastOpened: new Date().toISOString(),
+          });
+          // Re-establish file watchers for all repos in the vault
+          const db = vault.getDB();
+          for (const repo of db.getAll()) {
+            const watchPaths = db.getWatchPaths(repo.name);
+            fileWatcher.watchRepo(repo.name, watchPaths);
+          }
+          rpc.send.vaultStateChanged({ state: "unlocked" });
+          return true;
+        } catch (e) {
+          console.error("[dotlock] openVault failed:", e);
+          return false;
+        }
+      },
+
+      lockVault: () => {
+        fileWatcher.unwatchAll();
+        vault.lock();
+        rpc.send.vaultStateChanged({ state: "locked" });
+        return true;
+      },
+
+      pickVaultFile: async () => {
+        const paths = await Utils.openFileDialog({
+          startingFolder: "~/",
+          allowedFileTypes: "dotlock",
+          canChooseFiles: true,
+          canChooseDirectory: false,
+          allowsMultipleSelection: false,
+        });
+        return paths[0] || null;
+      },
+
+      pickVaultFolder: async () => {
+        const paths = await Utils.openFileDialog({
+          startingFolder: "~/",
+          allowedFileTypes: "*",
+          canChooseFiles: false,
+          canChooseDirectory: true,
+          allowsMultipleSelection: false,
+        });
+        return paths[0] || null;
+      },
+
+      // ── Keychain / Touch ID ───────────────────────────────────────
+
+      hasKeychainPassword: async ({ vaultPath }) => {
+        const recents = await getRecentVaults();
+        const meta = recents.find((r) => r.path === vaultPath);
+        return meta?.keychainEnabled === true;
+      },
+
+      storeInKeychain: async ({ vaultPath, password }) => {
+        const ok = await storePassword(vaultPath, password);
+        if (ok) {
+          const recents = await getRecentVaults();
+          const existing = recents.find((r) => r.path === vaultPath);
+          if (existing) {
+            await addRecentVault({ ...existing, keychainEnabled: true });
+          }
+        }
+        return ok;
+      },
+
+      retrieveFromKeychain: async ({ vaultPath }) =>
+        retrievePassword(vaultPath),
+
+      removeFromKeychain: async ({ vaultPath }) => {
+        const ok = await deletePassword(vaultPath);
+        if (ok) {
+          const recents = await getRecentVaults();
+          const existing = recents.find((r) => r.path === vaultPath);
+          if (existing) {
+            await addRecentVault({ ...existing, keychainEnabled: false });
+          }
+        }
+        return ok;
+      },
+
+      // ── Repo operations (require unlocked vault) ──────────────────
+
       selectFolder: async () => {
+        if (vault.getState() !== "unlocked") return null;
+        const db = vault.getDB();
+
         console.log("[dotlock] selectFolder called, opening dialog...");
         const paths = await Utils.openFileDialog({
           startingFolder: "~/",
@@ -63,18 +193,31 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
         const watchPaths = db.getWatchPaths(name);
         fileWatcher.watchRepo(name, watchPaths);
 
+        await vault.save();
         return repo;
       },
 
-      getRepos: () => db.getAll(),
-      getRepo: ({ name }) => db.get(name),
+      getRepos: () => {
+        if (vault.getState() !== "unlocked") return [];
+        return vault.getDB().getAll();
+      },
 
-      removeRepo: ({ name }) => {
+      getRepo: ({ name }) => {
+        if (vault.getState() !== "unlocked") return null;
+        return vault.getDB().get(name);
+      },
+
+      removeRepo: async ({ name }) => {
+        if (vault.getState() !== "unlocked") return false;
         fileWatcher.unwatchRepo(name);
-        return db.remove(name);
+        const result = vault.getDB().remove(name);
+        await vault.save();
+        return result;
       },
 
       importFile: async ({ repoName, absolutePath }) => {
+        if (vault.getState() !== "unlocked") return null;
+        const db = vault.getDB();
         const repo = db.get(repoName);
         if (!repo) {
           return null;
@@ -97,6 +240,7 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
             syncStatus: "synced",
           });
           console.log(`[dotlock] imported ${absolutePath} from disk`);
+          await vault.save();
           return db.get(repoName);
         } catch (e) {
           console.error(`[dotlock] import failed for ${absolutePath}:`, e);
@@ -105,6 +249,8 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
       },
 
       restoreFile: async ({ repoName, absolutePath }) => {
+        if (vault.getState() !== "unlocked") return null;
+        const db = vault.getDB();
         const repo = db.get(repoName);
         if (!repo) {
           return null;
@@ -121,6 +267,7 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
           await writeFile(absolutePath, envFile.rawContent, "utf-8");
           db.updateSyncStatus(repoName, absolutePath, "synced");
           console.log(`[dotlock] restored ${absolutePath} to disk`);
+          await vault.save();
           return db.get(repoName);
         } catch (e) {
           console.error(`[dotlock] restore failed for ${absolutePath}:`, e);

@@ -1,7 +1,7 @@
 import { existsSync, type FSWatcher, watch } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
-import { db } from "./db";
+import type { InMemoryDB } from "./db";
 
 const DEBOUNCE_MS = 300;
 
@@ -22,9 +22,24 @@ class FileWatcher {
   private timers = new Map<string, Timer>();
   /** Called when a file's sync status changes */
   private onChange: ((repoName: string) => void) | null = null;
+  /** Callback to get the current InMemoryDB (provided by VaultManager) */
+  private getDB: (() => InMemoryDB) | null = null;
+
+  setGetDB(fn: () => InMemoryDB): void {
+    this.getDB = fn;
+  }
 
   setOnChange(cb: (repoName: string) => void): void {
     this.onChange = cb;
+  }
+
+  private db(): InMemoryDB | null {
+    if (!this.getDB) return null;
+    try {
+      return this.getDB();
+    } catch {
+      return null;
+    }
   }
 
   watchRepo(repoName: string, filePaths: string[]): void {
@@ -62,8 +77,11 @@ class FileWatcher {
         watchers.push(fsw);
       } catch {
         // Directory doesn't exist — mark all its files as missing
-        for (const name of fileNames) {
-          db.updateSyncStatus(repoName, join(dir, name), "missing");
+        const currentDB = this.db();
+        if (currentDB) {
+          for (const name of fileNames) {
+            currentDB.updateSyncStatus(repoName, join(dir, name), "missing");
+          }
         }
       }
     }
@@ -119,7 +137,10 @@ class FileWatcher {
     repoName: string,
     absolutePath: string,
   ): Promise<void> {
-    const repo = db.get(repoName);
+    const currentDB = this.db();
+    if (!currentDB) return;
+
+    const repo = currentDB.get(repoName);
     if (!repo) {
       return;
     }
@@ -132,7 +153,7 @@ class FileWatcher {
     const prevStatus = envFile.syncStatus;
 
     if (!existsSync(absolutePath)) {
-      db.updateSyncStatus(repoName, absolutePath, "missing");
+      currentDB.updateSyncStatus(repoName, absolutePath, "missing");
       if (prevStatus !== "missing") {
         this.notify(repoName);
       }
@@ -147,12 +168,12 @@ class FileWatcher {
       const newStatus =
         vaultNormalized !== diskNormalized ? "disk_changed" : "synced";
 
-      db.updateSyncStatus(repoName, absolutePath, newStatus);
+      currentDB.updateSyncStatus(repoName, absolutePath, newStatus);
       if (newStatus !== prevStatus) {
         this.notify(repoName);
       }
     } catch {
-      db.updateSyncStatus(repoName, absolutePath, "missing");
+      currentDB.updateSyncStatus(repoName, absolutePath, "missing");
       if (prevStatus !== "missing") {
         this.notify(repoName);
       }

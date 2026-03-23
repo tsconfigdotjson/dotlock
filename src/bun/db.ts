@@ -1,7 +1,20 @@
 import type { EnvFile, Repo, SyncStatus } from "../shared/types";
 
-class InMemoryDB {
+export class InMemoryDB {
   private repos = new Map<string, Repo>();
+
+  /** Serialize all repos for vault persistence. */
+  toJSON(): Repo[] {
+    return Array.from(this.repos.values());
+  }
+
+  /** Clear and hydrate from a serialized repo array. */
+  loadFromJSON(repos: Repo[]): void {
+    this.repos.clear();
+    for (const repo of repos) {
+      this.repos.set(repo.name, repo);
+    }
+  }
 
   getAll(): Repo[] {
     return Array.from(this.repos.values());
@@ -68,4 +81,4 @@ class InMemoryDB {
   }
 }
 
-export const db = new InMemoryDB();
+// No singleton — VaultManager owns the InMemoryDB instance.
