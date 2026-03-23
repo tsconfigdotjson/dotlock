@@ -1,9 +1,9 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { renameSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import type { VaultMeta } from "../shared/types";
+import { atomicWrite } from "./atomicWrite";
 
 const MAX_RECENTS = 10;
 
@@ -72,7 +72,5 @@ async function writeRecents(entries: VaultMeta[]): Promise<void> {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  const tmpPath = `${path}.tmp`;
-  await Bun.write(tmpPath, JSON.stringify(entries, null, 2));
-  renameSync(tmpPath, path);
+  await atomicWrite(path, JSON.stringify(entries, null, 2));
 }

@@ -20,8 +20,9 @@ const PROVIDERS = [
   "Datadog",
   "Sentry",
 ] as const;
-import { timeAgo } from "../utils";
+
 import * as rpc from "../rpc";
+import { timeAgo } from "../utils";
 import {
   AlertTriangleIcon,
   ArrowDownIcon,

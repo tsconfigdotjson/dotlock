@@ -38,10 +38,7 @@ export function newKDFParams(): KDFParams {
 }
 
 /** Derive a 32-byte encryption key from a password + KDF params. */
-export function deriveKey(
-  password: string,
-  params: KDFParams,
-): Uint8Array {
+export function deriveKey(password: string, params: KDFParams): Uint8Array {
   const salt = hexDecode(params.salt);
   const key = scryptSync(password, salt, 32, {
     N: params.N,
@@ -66,7 +63,11 @@ export function encrypt(
     new Uint8Array(part2 as unknown as ArrayBuffer),
   ]);
   const tag = cipher.getAuthTag();
-  return { iv, authTag: new Uint8Array(tag as unknown as ArrayBuffer), ciphertext: encrypted };
+  return {
+    iv,
+    authTag: new Uint8Array(tag as unknown as ArrayBuffer),
+    ciphertext: encrypted,
+  };
 }
 
 /** AES-256-GCM decrypt. Throws on wrong key or tampered data. */
@@ -101,7 +102,15 @@ export function serializeVaultFile(
   const version = new Uint8Array(2);
   new DataView(version.buffer).setUint16(0, FORMAT_VERSION, false); // big-endian
 
-  return concatBytes([MAGIC, version, kdfLen, kdfJSON, iv, authTag, ciphertext]);
+  return concatBytes([
+    MAGIC,
+    version,
+    kdfLen,
+    kdfJSON,
+    iv,
+    authTag,
+    ciphertext,
+  ]);
 }
 
 /** Parse a .dotlock binary blob. Validates magic bytes and structure. */
@@ -145,9 +154,7 @@ export function parseVaultFile(data: Uint8Array): {
   const kdfJSON = data.subarray(offset, offset + kdfLen);
   offset += kdfLen;
 
-  const kdfParams: KDFParams = JSON.parse(
-    new TextDecoder().decode(kdfJSON),
-  );
+  const kdfParams: KDFParams = JSON.parse(new TextDecoder().decode(kdfJSON));
 
   if (data.length < offset + IV_LENGTH) {
     throw new Error("Truncated .dotlock file (missing IV)");
@@ -180,9 +187,13 @@ function concatBytes(arrays: Uint8Array[]): Uint8Array {
 }
 
 function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false;
+  if (a.length !== b.length) {
+    return false;
+  }
   for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return false;
+    if (a[i] !== b[i]) {
+      return false;
+    }
   }
   return true;
 }
@@ -194,6 +205,12 @@ function hexEncode(data: Uint8Array | Buffer): string {
 }
 
 function hexDecode(hex: string): Uint8Array {
+  if (hex.length % 2 !== 0) {
+    throw new Error("Invalid hex string: odd length");
+  }
+  if (!/^[0-9a-fA-F]*$/.test(hex)) {
+    throw new Error("Invalid hex string: contains non-hex characters");
+  }
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length; i += 2) {
     bytes[i / 2] = Number.parseInt(hex.substring(i, i + 2), 16);

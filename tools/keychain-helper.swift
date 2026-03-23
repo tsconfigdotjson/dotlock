@@ -15,8 +15,31 @@ import Foundation
 import Security
 import LocalAuthentication
 
-// Must match the keychain-access-groups entitlement
-let keychainAccessGroup = "RQ4599WP39.dev.dotlock.keychain-helper"
+// Resolved at runtime from the app bundle's embedded provisioning profile,
+// so no team ID is hardcoded in source. Must match keychain-access-groups entitlement.
+let keychainAccessGroup: String = {
+    let bundleID = "dev.dotlock.keychain-helper"
+    let bundle = Bundle.main
+
+    // Try Info.plist TeamIdentifierPrefix (set by Xcode-managed builds)
+    if let prefixes = bundle.infoDictionary?["TeamIdentifierPrefix"] as? String,
+       !prefixes.isEmpty {
+        return "\(prefixes)\(bundleID)"
+    }
+
+    // Fallback: parse team ID from embedded provisioning profile
+    if let profileURL = bundle.url(forResource: "embedded", withExtension: "provisionprofile"),
+       let data = try? Data(contentsOf: profileURL),
+       let str = String(data: data, encoding: .ascii),
+       let keyRange = str.range(of: "<key>TeamIdentifier</key>"),
+       let startRange = str.range(of: "<string>", range: keyRange.upperBound..<str.endIndex),
+       let endRange = str.range(of: "</string>", range: startRange.upperBound..<str.endIndex) {
+        let teamID = String(str[startRange.upperBound..<endRange.lowerBound])
+        return "\(teamID).\(bundleID)"
+    }
+
+    fatalError("Cannot determine team ID for keychain access group")
+}()
 
 // MARK: - Helpers
 

@@ -1,7 +1,7 @@
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { VaultManager } from "../vault";
 
 const TEST_DIR = join(tmpdir(), "dotlock-vault-tests");
@@ -176,14 +176,14 @@ describe("full lifecycle", () => {
 
     const repoA = vault.getDB().get("repo-a");
     expect(repoA).not.toBeNull();
-    expect(repoA!.envFiles.length).toBe(1);
-    expect(repoA!.envFiles[0].keys.length).toBe(2);
-    expect(repoA!.envFiles[0].keys[0].name).toBe("API_KEY");
-    expect(repoA!.envFiles[0].keys[1].value).toBe("postgres://localhost");
+    expect(repoA?.envFiles.length).toBe(1);
+    expect(repoA?.envFiles[0].keys.length).toBe(2);
+    expect(repoA?.envFiles[0].keys[0].name).toBe("API_KEY");
+    expect(repoA?.envFiles[0].keys[1].value).toBe("postgres://localhost");
 
     const repoB = vault.getDB().get("repo-b");
     expect(repoB).not.toBeNull();
-    expect(repoB!.envFiles.length).toBe(0);
+    expect(repoB?.envFiles.length).toBe(0);
   });
 
   test("two rapid saves don't corrupt the file", async () => {
