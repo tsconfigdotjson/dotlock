@@ -15,30 +15,26 @@ import Foundation
 import Security
 import LocalAuthentication
 
-// Resolved at runtime from the app bundle's embedded provisioning profile,
-// so no team ID is hardcoded in source. Must match keychain-access-groups entitlement.
+// Read team ID from Info.plist (injected by build-helpers.sh at build time).
+// This avoids hardcoding the team ID in source while remaining reliable when
+// the binary is spawned as a subprocess (where Bundle.main may not resolve).
 let keychainAccessGroup: String = {
     let bundleID = "dev.dotlock.keychain-helper"
-    let bundle = Bundle.main
 
-    // Try Info.plist TeamIdentifierPrefix (set by Xcode-managed builds)
-    if let prefixes = bundle.infoDictionary?["TeamIdentifierPrefix"] as? String,
-       !prefixes.isEmpty {
-        return "\(prefixes)\(bundleID)"
-    }
+    // Walk from the executable up to the .app bundle and read its Info.plist
+    let execURL = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath()
+    // execURL = …/keychain-helper.app/Contents/MacOS/keychain-helper
+    let contentsURL = execURL.deletingLastPathComponent().deletingLastPathComponent()
+    let plistURL = contentsURL.appendingPathComponent("Info.plist")
 
-    // Fallback: parse team ID from embedded provisioning profile
-    if let profileURL = bundle.url(forResource: "embedded", withExtension: "provisionprofile"),
-       let data = try? Data(contentsOf: profileURL),
-       let str = String(data: data, encoding: .ascii),
-       let keyRange = str.range(of: "<key>TeamIdentifier</key>"),
-       let startRange = str.range(of: "<string>", range: keyRange.upperBound..<str.endIndex),
-       let endRange = str.range(of: "</string>", range: startRange.upperBound..<str.endIndex) {
-        let teamID = String(str[startRange.upperBound..<endRange.lowerBound])
+    if let plistData = try? Data(contentsOf: plistURL),
+       let plist = try? PropertyListSerialization.propertyList(from: plistData, format: nil) as? [String: Any],
+       let teamID = plist["DotlockTeamID"] as? String,
+       !teamID.isEmpty {
         return "\(teamID).\(bundleID)"
     }
 
-    fatalError("Cannot determine team ID for keychain access group")
+    fatalError("Cannot determine team ID — is DotlockTeamID set in Info.plist?")
 }()
 
 // MARK: - Helpers

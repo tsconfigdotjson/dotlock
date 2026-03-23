@@ -74,6 +74,8 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<PLIST
     <string>1.0</string>
     <key>LSUIElement</key>
     <true/>
+    <key>DotlockTeamID</key>
+    <string>${TEAM_ID}</string>
 </dict>
 </plist>
 PLIST
