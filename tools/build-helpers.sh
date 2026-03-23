@@ -63,7 +63,9 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<PLIST
     <key>CFBundleExecutable</key>
     <string>keychain-helper</string>
     <key>CFBundleName</key>
-    <string>keychain-helper</string>
+    <string>dotlock</string>
+    <key>CFBundleDisplayName</key>
+    <string>dotlock</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleVersion</key>

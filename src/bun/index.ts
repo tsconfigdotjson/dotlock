@@ -56,7 +56,10 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
       createVault: async ({ path, password }) => {
         try {
           await vault.createVault(path, password);
+          const recents = await getRecentVaults();
+          const existing = recents.find((r) => r.path === path);
           await addRecentVault({
+            ...existing,
             path,
             name: basename(path, ".dotlock"),
             lastOpened: new Date().toISOString(),
@@ -72,7 +75,10 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
       openVault: async ({ path, password }) => {
         try {
           await vault.openVault(path, password);
+          const recents = await getRecentVaults();
+          const existing = recents.find((r) => r.path === path);
           await addRecentVault({
+            ...existing,
             path,
             name: basename(path, ".dotlock"),
             lastOpened: new Date().toISOString(),
@@ -123,8 +129,6 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
       // ── Keychain / Touch ID ───────────────────────────────────────
 
       hasKeychainPassword: async ({ vaultPath }) => {
-        // Data protection keychain with biometric ACL can't be probed without auth.
-        // We track keychainEnabled in the recent vaults metadata instead.
         const recents = await getRecentVaults();
         const meta = recents.find((r) => r.path === vaultPath);
         return meta?.keychainEnabled === true;
@@ -133,7 +137,6 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
       storeInKeychain: async ({ vaultPath, password }) => {
         const ok = await storePassword(vaultPath, password);
         if (ok) {
-          // Mark this vault as keychain-enabled in recents
           const recents = await getRecentVaults();
           const existing = recents.find((r) => r.path === vaultPath);
           if (existing) {

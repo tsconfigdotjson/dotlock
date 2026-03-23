@@ -12,18 +12,24 @@ import { dirname, join } from "node:path";
 const SERVICE = "dev.dotlock.vault";
 
 function getHelperPath(): string | null {
-  // In the Electrobun app bundle: Contents/MacOS/keychain-helper.app/Contents/MacOS/keychain-helper
-  // During development: build/helpers/keychain-helper.app/Contents/MacOS/keychain-helper
-  const candidates = [
-    // Dev: relative to project root
-    join(dirname(dirname(import.meta.dir)), "build", "helpers", "keychain-helper.app", "Contents", "MacOS", "keychain-helper"),
-    // Bundled: next to the main binary in Contents/MacOS/
-    join(dirname(process.argv0), "keychain-helper.app", "Contents", "MacOS", "keychain-helper"),
-  ];
+  const helperRelative = join("keychain-helper.app", "Contents", "MacOS", "keychain-helper");
 
-  for (const p of candidates) {
-    if (existsSync(p)) return p;
+  // Walk up from import.meta.dir to find project root (contains package.json)
+  let dir = import.meta.dir;
+  for (let i = 0; i < 10; i++) {
+    if (existsSync(join(dir, "package.json"))) {
+      const p = join(dir, "build", "helpers", helperRelative);
+      if (existsSync(p)) return p;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
   }
+
+  // Bundled: next to the main executable in Contents/MacOS/
+  const bundled = join(dirname(process.execPath), helperRelative);
+  if (existsSync(bundled)) return bundled;
+
   return null;
 }
 
