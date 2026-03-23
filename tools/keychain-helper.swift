@@ -102,7 +102,7 @@ func store(service: String, account: String) {
 
 func retrieve(service: String, account: String) {
     let context = LAContext()
-    context.localizedReason = "Access your dotlock vault password"
+    context.localizedReason = "unlock your vault"
 
     let query: [String: Any] = [
         kSecClass as String: kSecClassGenericPassword,
