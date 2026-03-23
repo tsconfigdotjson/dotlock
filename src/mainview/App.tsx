@@ -10,6 +10,7 @@ import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { Dashboard } from "./components/Dashboard";
 import { FolderIcon, KeyIcon, LockIcon } from "./components/icons";
 import { PasswordPrompt } from "./components/PasswordPrompt";
+import { ProviderDetail } from "./components/ProviderDetail";
 import { RepoDetail } from "./components/RepoDetail";
 import { SidebarLink } from "./components/SidebarLink";
 import { ThemeToggle } from "./components/ThemeToggle";
@@ -223,6 +224,7 @@ function UnlockedApp({
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/repo/:name" element={<RepoDetail />} />
+            <Route path="/keys/:provider" element={<ProviderDetail />} />
           </Routes>
         </main>
       </div>
