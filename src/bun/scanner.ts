@@ -21,6 +21,10 @@ function isEnvFilename(name: string): boolean {
   return name === ".env" || name.startsWith(".env.");
 }
 
+export function rebuildRawContent(keys: KeyEntry[]): string {
+  return `${keys.map((k) => `${k.name}=${k.value}`).join("\n")}\n`;
+}
+
 export function parseEnvFile(content: string): KeyEntry[] {
   const keys: KeyEntry[] = [];
   const today = new Date().toISOString().split("T")[0];

@@ -89,6 +89,12 @@ class FileWatcher {
     }
 
     this.dirWatchers.set(repoName, watchers);
+
+    // Verify all tracked files against disk immediately.
+    // This catches changes made while the app was closed.
+    for (const fp of filePaths) {
+      this.scheduleCheck(repoName, fp);
+    }
   }
 
   unwatchRepo(repoName: string): void {

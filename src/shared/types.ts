@@ -108,6 +108,34 @@ export type DotlockRPC = {
         params: { repoName: string; absolutePath: string };
         response: Repo | null;
       };
+      editKey: {
+        params: {
+          repoName: string;
+          absolutePath: string;
+          keyName: string;
+          value: string;
+          provider: string;
+        };
+        response: Repo | null;
+      };
+      deleteKey: {
+        params: {
+          repoName: string;
+          absolutePath: string;
+          keyName: string;
+        };
+        response: Repo | null;
+      };
+      addKey: {
+        params: {
+          repoName: string;
+          absolutePath: string;
+          keyName: string;
+          value: string;
+          provider: string;
+        };
+        response: Repo | null;
+      };
     };
   }>;
   webview: RPCSchema<{

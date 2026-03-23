@@ -1,4 +1,3 @@
-import { readFile, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
 import {
   ApplicationMenu,
@@ -9,8 +8,16 @@ import {
 } from "electrobun/bun";
 import type { DotlockRPC } from "../shared/types";
 import { deletePassword, retrievePassword, storePassword } from "./keychain";
+import {
+  addKey as addKeyOp,
+  deleteKey as deleteKeyOp,
+  editKey as editKeyOp,
+  importFile as importFileOp,
+  removeRepo as removeRepoOp,
+  restoreFile as restoreFileOp,
+} from "./operations";
 import { addRecentVault, getRecentVaults } from "./recentVaults";
-import { parseEnvFile, scanFolder } from "./scanner";
+import { scanFolder } from "./scanner";
 import { VaultManager } from "./vault";
 import { fileWatcher } from "./watcher";
 
@@ -204,74 +211,23 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
       },
 
       removeRepo: async ({ name }) => {
-        if (vault.getState() !== "unlocked") {
-          return false;
-        }
         fileWatcher.unwatchRepo(name);
-        const result = vault.getDB().remove(name);
-        await vault.save();
-        return result;
+        return removeRepoOp(vault, name);
       },
 
-      importFile: async ({ repoName, absolutePath }) => {
-        if (vault.getState() !== "unlocked") {
-          return null;
-        }
-        const db = vault.getDB();
-        const repo = db.get(repoName);
-        if (!repo) {
-          return null;
-        }
+      importFile: async ({ repoName, absolutePath }) =>
+        importFileOp(vault, repoName, absolutePath),
 
-        const envFile = repo.envFiles.find(
-          (f) => f.absolutePath === absolutePath,
-        );
-        if (!envFile) {
-          return null;
-        }
+      restoreFile: async ({ repoName, absolutePath }) =>
+        restoreFileOp(vault, repoName, absolutePath),
+      editKey: async ({ repoName, absolutePath, keyName, value, provider }) =>
+        editKeyOp(vault, repoName, absolutePath, keyName, value, provider),
 
-        try {
-          const content = await readFile(absolutePath, "utf-8");
-          const keys = parseEnvFile(content);
-          db.updateEnvFile(repoName, {
-            ...envFile,
-            rawContent: content,
-            keys,
-            syncStatus: "synced",
-          });
-          await vault.save();
-          return db.get(repoName);
-        } catch {
-          return null;
-        }
-      },
+      deleteKey: async ({ repoName, absolutePath, keyName }) =>
+        deleteKeyOp(vault, repoName, absolutePath, keyName),
 
-      restoreFile: async ({ repoName, absolutePath }) => {
-        if (vault.getState() !== "unlocked") {
-          return null;
-        }
-        const db = vault.getDB();
-        const repo = db.get(repoName);
-        if (!repo) {
-          return null;
-        }
-
-        const envFile = repo.envFiles.find(
-          (f) => f.absolutePath === absolutePath,
-        );
-        if (!envFile) {
-          return null;
-        }
-
-        try {
-          await writeFile(absolutePath, envFile.rawContent, "utf-8");
-          db.updateSyncStatus(repoName, absolutePath, "synced");
-          await vault.save();
-          return db.get(repoName);
-        } catch {
-          return null;
-        }
-      },
+      addKey: async ({ repoName, absolutePath, keyName, value, provider }) =>
+        addKeyOp(vault, repoName, absolutePath, keyName, value, provider),
     },
     messages: {},
   },
