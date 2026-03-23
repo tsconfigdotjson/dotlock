@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { HashRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App";
-import { initRPC } from "./rpc";
+import { getAccentColor, initRPC } from "./rpc";
 
 // Prevent Backspace/Delete from navigating back in the SPA
 document.addEventListener("keydown", (e) => {
@@ -24,7 +24,12 @@ if (!root) {
 }
 
 // Initialize Electrobun RPC bridge, then render
-initRPC().then(() => {
+initRPC().then(async () => {
+  const accent = await getAccentColor();
+  if (accent) {
+    document.documentElement.style.setProperty("--system-accent", accent);
+  }
+
   createRoot(root).render(
     <StrictMode>
       <HashRouter>

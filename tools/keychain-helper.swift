@@ -14,6 +14,7 @@
 import Foundation
 import Security
 import LocalAuthentication
+import AppKit
 
 // Read team ID from Info.plist (injected by build-helpers.sh at build time).
 // This avoids hardcoding the team ID in source while remaining reliable when
@@ -157,15 +158,37 @@ func check(service: String, account: String) {
     exit(1)
 }
 
+func accentColor() {
+    let color = NSColor.controlAccentColor.usingColorSpace(.sRGB)!
+    let hex = String(
+        format: "#%02x%02x%02x",
+        Int(round(color.redComponent * 255)),
+        Int(round(color.greenComponent * 255)),
+        Int(round(color.blueComponent * 255))
+    )
+    print(hex, terminator: "")
+}
+
 // MARK: - Main
 
 let args = CommandLine.arguments
+guard args.count >= 2 else {
+    fputs("usage: keychain-helper <store|retrieve|delete|check|accent-color> [service] [account]\n", stderr)
+    exit(1)
+}
+
+let command = args[1]
+
+if command == "accent-color" {
+    accentColor()
+    exit(0)
+}
+
 guard args.count >= 4 else {
     fputs("usage: keychain-helper <store|retrieve|delete|check> <service> <account>\n", stderr)
     exit(1)
 }
 
-let command = args[1]
 let service = args[2]
 let account = args[3]
 
