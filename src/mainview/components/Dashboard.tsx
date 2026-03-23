@@ -18,6 +18,16 @@ function GreetingIcon() {
   return <Icon size={16} className="text-gray-400 dark:text-gray-500" />;
 }
 
+function Greeting({ children }: { children?: React.ReactNode }) {
+  return (
+    <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+      <GreetingIcon />
+      {getGreeting()}
+      {children}
+    </h1>
+  );
+}
+
 function getTotalKeys(repo: Repo): number {
   return repo.envFiles.reduce((sum, f) => sum + f.keys.length, 0);
 }
@@ -140,76 +150,57 @@ export function Dashboard() {
   const totalKeys = repos.reduce((sum, r) => sum + getTotalKeys(r), 0);
   const totalDrift = repos.reduce((sum, r) => sum + driftCount(r), 0);
 
-  if (loading) {
-    return (
-      <>
-        <header
-          className="h-[72px] shrink-0 flex items-center px-6 border-b border-gray-100 dark:border-white/[0.06]"
-          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
-        />
-        <div className="flex-1" />
-      </>
-    );
-  }
-
-  if (repos.length === 0) {
-    return (
-      <>
-        <header
-          className="h-[72px] shrink-0 flex items-center justify-between px-6 border-b border-gray-100 dark:border-white/[0.06]"
-          style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
-        >
-          <div>
-            <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <GreetingIcon />
-              {getGreeting()}
-            </h1>
-          </div>
-        </header>
-        <EmptyState onAdd={addRepo} />
-      </>
-    );
-  }
-
   return (
     <>
       <header
         className="h-[72px] shrink-0 flex items-center justify-between px-6 border-b border-gray-100 dark:border-white/[0.06]"
         style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
       >
-        <div>
-          <h1 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <GreetingIcon />
-            {getGreeting()}
-          </h1>
-          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
-            {repos.length} {repos.length === 1 ? "project" : "projects"},{" "}
-            {totalKeys} tracked keys
-            {totalDrift > 0 && (
-              <span className="text-amber-500 dark:text-amber-400">
-                {" "}
-                &middot; {totalDrift} out of sync
-              </span>
+        {!loading && (
+          <>
+            <div>
+              <Greeting />
+              {repos.length > 0 && (
+                <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
+                  {repos.length}{" "}
+                  {repos.length === 1 ? "project" : "projects"},{" "}
+                  {totalKeys} tracked keys
+                  {totalDrift > 0 && (
+                    <span className="text-amber-500 dark:text-amber-400">
+                      {" "}
+                      &middot; {totalDrift} out of sync
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
+            {repos.length > 0 && (
+              <button
+                type="button"
+                onClick={addRepo}
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-white/[0.1] bg-white dark:bg-white/[0.05] hover:bg-gray-50 dark:hover:bg-white/[0.08] text-gray-600 dark:text-gray-300 transition-colors shadow-sm"
+                style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+                title="New project"
+              >
+                <PlusIcon size={16} />
+              </button>
             )}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={addRepo}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-white/[0.1] bg-white dark:bg-white/[0.05] hover:bg-gray-50 dark:hover:bg-white/[0.08] text-gray-600 dark:text-gray-300 transition-colors shadow-sm"
-          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-          title="New project"
-        >
-          <PlusIcon size={16} />
-        </button>
+          </>
+        )}
       </header>
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {repos.map((repo) => (
-            <ProjectCard key={repo.name} repo={repo} />
-          ))}
+      {loading ? (
+        <div className="flex-1" />
+      ) : repos.length === 0 ? (
+        <EmptyState onAdd={addRepo} />
+      ) : (
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {repos.map((repo) => (
+              <ProjectCard key={repo.name} repo={repo} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
