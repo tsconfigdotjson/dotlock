@@ -34,7 +34,9 @@ class FileWatcher {
   }
 
   private db(): InMemoryDB | null {
-    if (!this.getDB) return null;
+    if (!this.getDB) {
+      return null;
+    }
     try {
       return this.getDB();
     } catch {
@@ -138,7 +140,9 @@ class FileWatcher {
     absolutePath: string,
   ): Promise<void> {
     const currentDB = this.db();
-    if (!currentDB) return;
+    if (!currentDB) {
+      return;
+    }
 
     const repo = currentDB.get(repoName);
     if (!repo) {

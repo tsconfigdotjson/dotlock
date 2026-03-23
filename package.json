@@ -10,7 +10,7 @@
     "build:canary": "vite build && electrobun build --env=canary",
     "build:helpers": "./tools/build-helpers.sh",
     "test": "bun test",
-    "ci": "biome format . && bun run lint && bun run typecheck",
+    "ci": "biome format . && bun run lint && bun run typecheck && bun test",
     "format": "biome check --write .",
     "lint": "biome lint .",
     "typecheck": "tsc --noEmit"

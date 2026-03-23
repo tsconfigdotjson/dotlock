@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { VaultMeta } from "../types";
 import * as rpc from "../rpc";
+import type { Theme, VaultMeta } from "../types";
 import { timeAgo } from "../utils";
 import {
   ClockIcon,
@@ -10,7 +10,6 @@ import {
   XIcon,
 } from "./icons";
 import { ThemeToggle } from "./ThemeToggle";
-import type { Theme } from "../types";
 
 type Props = {
   theme: Theme;
@@ -30,6 +29,9 @@ export function VaultPicker({
   const [vaultName, setVaultName] = useState("");
   const [folderPath, setFolderPath] = useState<string | null>(null);
 
+  const sanitizeName = (name: string) =>
+    name.trim().replace(/[^a-zA-Z0-9._-]/g, "-");
+
   useEffect(() => {
     rpc.getRecentVaults().then(setRecents);
   }, []);
@@ -37,7 +39,11 @@ export function VaultPicker({
   const handleOpenExisting = async () => {
     const path = await rpc.pickVaultFile();
     if (path) {
-      const name = path.split("/").pop()?.replace(".dotlock", "") || "vault";
+      const name =
+        path
+          .split("/")
+          .pop()
+          ?.replace(/\.dotlock$/, "") || "vault";
       onOpenVault(path, name);
     }
   };
@@ -50,8 +56,10 @@ export function VaultPicker({
   };
 
   const handleCreateContinue = () => {
-    if (!vaultName.trim() || !folderPath) return;
-    const safeName = vaultName.trim().replace(/[^a-zA-Z0-9._-]/g, "-");
+    if (!vaultName.trim() || !folderPath) {
+      return;
+    }
+    const safeName = sanitizeName(vaultName);
     const fullPath = `${folderPath}/${safeName}.dotlock`;
     onCreateVault(fullPath, safeName);
   };
@@ -60,10 +68,7 @@ export function VaultPicker({
     onOpenVault(meta.path, meta.name);
   };
 
-  const handleRemoveRecent = async (
-    e: React.MouseEvent,
-    path: string,
-  ) => {
+  const handleRemoveRecent = async (e: React.MouseEvent, path: string) => {
     e.stopPropagation();
     // Remove from recents via backend — for now just filter locally
     // (removeRecentVault RPC not exposed, but we can call the existing ones)
@@ -72,7 +77,7 @@ export function VaultPicker({
 
   const resolvedPath =
     folderPath && vaultName.trim()
-      ? `${folderPath}/${vaultName.trim().replace(/[^a-zA-Z0-9._-]/g, "-")}.dotlock`
+      ? `${folderPath}/${sanitizeName(vaultName)}.dotlock`
       : null;
 
   return (
@@ -111,10 +116,11 @@ export function VaultPicker({
                   value={vaultName}
                   onChange={(e) => setVaultName(e.target.value)}
                   placeholder="my-secrets"
-                  autoFocus
                   className="w-full px-3 py-2.5 rounded-lg text-[13px] font-mono bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-[var(--system-accent)] focus:ring-1 focus:ring-[var(--system-accent)]/30 transition-colors"
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleCreateContinue();
+                    if (e.key === "Enter") {
+                      handleCreateContinue();
+                    }
                   }}
                 />
               </div>

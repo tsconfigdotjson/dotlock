@@ -123,7 +123,9 @@ describe("serializeVaultFile / parseVaultFile", () => {
   });
 
   test("bad magic bytes throws", () => {
-    const bad = new Uint8Array([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+    const bad = new Uint8Array([
+      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    ]);
     expect(() => parseVaultFile(bad)).toThrow("bad magic bytes");
   });
 
@@ -145,12 +147,18 @@ describe("serializeVaultFile / parseVaultFile", () => {
       magic.length + version.length + kdfLen.length + kdf.length + rest.length,
     );
     let off = 0;
-    blob.set(magic, off); off += magic.length;
-    blob.set(version, off); off += version.length;
-    blob.set(kdfLen, off); off += kdfLen.length;
-    blob.set(kdf, off); off += kdf.length;
+    blob.set(magic, off);
+    off += magic.length;
+    blob.set(version, off);
+    off += version.length;
+    blob.set(kdfLen, off);
+    off += kdfLen.length;
+    blob.set(kdf, off);
+    off += kdf.length;
     blob.set(rest, off);
-    expect(() => parseVaultFile(blob)).toThrow("Unsupported .dotlock format version");
+    expect(() => parseVaultFile(blob)).toThrow(
+      "Unsupported .dotlock format version",
+    );
   });
 
   test("truncated KDF params throws", () => {

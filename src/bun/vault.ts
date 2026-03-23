@@ -1,10 +1,10 @@
-import { renameSync } from "node:fs";
 import type { VaultData, VaultState } from "../shared/types";
+import { atomicWrite } from "./atomicWrite";
 import {
-  type KDFParams,
   decrypt,
   deriveKey,
   encrypt,
+  type KDFParams,
   newKDFParams,
   parseVaultFile,
   serializeVaultFile,
@@ -16,6 +16,7 @@ export class VaultManager {
   private vaultPath: string | null = null;
   private derivedKey: Uint8Array | null = null;
   private kdfParams: KDFParams | null = null;
+  private createdAt: string | null = null;
   private db = new InMemoryDB();
   private saveLock: Promise<void> = Promise.resolve();
 
@@ -40,25 +41,24 @@ export class VaultManager {
     const kdfParams = newKDFParams();
     const key = deriveKey(password, kdfParams);
 
+    const now = new Date().toISOString();
     const vaultData: VaultData = {
       version: 1,
       repos: [],
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString(),
+      createdAt: now,
+      lastModified: now,
     };
 
     const plaintext = new TextEncoder().encode(JSON.stringify(vaultData));
     const { iv, authTag, ciphertext } = encrypt(plaintext, key);
     const fileData = serializeVaultFile(kdfParams, iv, authTag, ciphertext);
 
-    // Atomic write: tmp → rename
-    const tmpPath = `${path}.tmp`;
-    await Bun.write(tmpPath, fileData);
-    renameSync(tmpPath, path);
+    await atomicWrite(path, fileData);
 
     this.vaultPath = path;
     this.derivedKey = key;
     this.kdfParams = kdfParams;
+    this.createdAt = now;
     this.db = new InMemoryDB();
     this.state = "unlocked";
   }
@@ -89,6 +89,7 @@ export class VaultManager {
     this.vaultPath = path;
     this.derivedKey = key;
     this.kdfParams = parsed.kdfParams;
+    this.createdAt = vaultData.createdAt;
     this.state = "unlocked";
   }
 
@@ -96,7 +97,7 @@ export class VaultManager {
   async save(): Promise<void> {
     // Queue behind any in-flight save to prevent .tmp file races
     const prev = this.saveLock;
-    let resolve: () => void;
+    let resolve: (() => void) | undefined;
     this.saveLock = new Promise<void>((r) => {
       resolve = r;
     });
@@ -105,7 +106,7 @@ export class VaultManager {
       await prev;
       await this._doSave();
     } finally {
-      resolve!();
+      resolve?.();
     }
   }
 
@@ -122,7 +123,7 @@ export class VaultManager {
     const vaultData: VaultData = {
       version: 1,
       repos: this.db.toJSON(),
-      createdAt: new Date().toISOString(),
+      createdAt: this.createdAt ?? new Date().toISOString(),
       lastModified: new Date().toISOString(),
     };
 
@@ -135,15 +136,14 @@ export class VaultManager {
       ciphertext,
     );
 
-    const tmpPath = `${this.vaultPath}.tmp`;
-    await Bun.write(tmpPath, fileData);
-    renameSync(tmpPath, this.vaultPath);
+    await atomicWrite(this.vaultPath, fileData);
   }
 
   /** Lock the vault: clear sensitive data from memory. */
   lock(): void {
     this.derivedKey = null;
     this.kdfParams = null;
+    this.createdAt = null;
     this.db = new InMemoryDB(); // fresh empty db
     if (this.vaultPath) {
       this.state = "locked";

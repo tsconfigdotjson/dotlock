@@ -15,6 +15,17 @@ type DotlockRPCClient = {
 // We store the rpc object here so the typed wrapper functions can use it.
 let rpc: DotlockRPCClient | null = null;
 
+/** Generic RPC wrapper: guards against null rpc, catches errors, returns fallback. */
+function rpcCall<T>(
+  fn: (client: DotlockRPCClient) => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  if (!rpc) {
+    return Promise.resolve(fallback);
+  }
+  return fn(rpc).catch(() => fallback);
+}
+
 // Callback for when the backend pushes a sync change notification.
 type SyncChangedCallback = (repoName: string) => void;
 let syncChangedCallback: SyncChangedCallback | null = null;
@@ -34,14 +45,12 @@ export function onVaultStateChanged(cb: VaultStateCallback): void {
 }
 
 export async function initRPC(): Promise<void> {
-  console.log("[dotlock] initRPC: __electrobun =", !!window.__electrobun);
   if (!window.__electrobun) {
     return;
   }
 
   try {
     const { Electroview } = await import("electrobun/view");
-    console.log("[dotlock] Electroview loaded");
     const rpcInstance = Electroview.defineRPC<DotlockRPC>({
       maxRequestTime: 120_000,
       handlers: {
@@ -56,7 +65,6 @@ export async function initRPC(): Promise<void> {
     rpcInstance.addMessageListener(
       "syncChanged",
       ({ repoName }: { repoName: string }) => {
-        console.log("[dotlock] syncChanged push for:", repoName);
         if (syncChangedCallback) {
           syncChangedCallback(repoName);
         }
@@ -67,230 +75,103 @@ export async function initRPC(): Promise<void> {
     rpcInstance.addMessageListener(
       "vaultStateChanged",
       ({ state }: { state: VaultState }) => {
-        console.log("[dotlock] vaultStateChanged push:", state);
         if (vaultStateCallback) {
           vaultStateCallback(state);
         }
       },
     );
-
-    console.log("[dotlock] RPC initialized successfully");
-  } catch (e) {
-    console.warn("[dotlock] Electrobun RPC not available:", e);
+  } catch {
+    // Electrobun RPC not available (e.g. running in browser for dev)
   }
 }
 
 // ── Vault lifecycle ─────────────────────────────────────────────────
 
-export async function getVaultState(): Promise<VaultState> {
-  if (!rpc) return "no_vault";
-  try {
-    return await rpc.request.getVaultState({});
-  } catch (e) {
-    console.error("[dotlock] getVaultState error:", e);
-    return "no_vault";
-  }
+export function getVaultState(): Promise<VaultState> {
+  return rpcCall((r) => r.request.getVaultState({}), "no_vault");
 }
 
-export async function getRecentVaults(): Promise<VaultMeta[]> {
-  if (!rpc) return [];
-  try {
-    return await rpc.request.getRecentVaults({});
-  } catch (e) {
-    console.error("[dotlock] getRecentVaults error:", e);
-    return [];
-  }
+export function getRecentVaults(): Promise<VaultMeta[]> {
+  return rpcCall((r) => r.request.getRecentVaults({}), []);
 }
 
-export async function createVault(
-  path: string,
-  password: string,
-): Promise<boolean> {
-  if (!rpc) return false;
-  try {
-    return await rpc.request.createVault({ path, password });
-  } catch (e) {
-    console.error("[dotlock] createVault error:", e);
-    return false;
-  }
+export function createVault(path: string, password: string): Promise<boolean> {
+  return rpcCall((r) => r.request.createVault({ path, password }), false);
 }
 
-export async function openVault(
-  path: string,
-  password: string,
-): Promise<boolean> {
-  if (!rpc) return false;
-  try {
-    return await rpc.request.openVault({ path, password });
-  } catch (e) {
-    console.error("[dotlock] openVault error:", e);
-    return false;
-  }
+export function openVault(path: string, password: string): Promise<boolean> {
+  return rpcCall((r) => r.request.openVault({ path, password }), false);
 }
 
-export async function lockVault(): Promise<boolean> {
-  if (!rpc) return false;
-  try {
-    return await rpc.request.lockVault({});
-  } catch (e) {
-    console.error("[dotlock] lockVault error:", e);
-    return false;
-  }
+export function lockVault(): Promise<boolean> {
+  return rpcCall((r) => r.request.lockVault({}), false);
 }
 
-export async function pickVaultFile(): Promise<string | null> {
-  if (!rpc) return null;
-  try {
-    return await rpc.request.pickVaultFile({});
-  } catch (e) {
-    console.error("[dotlock] pickVaultFile error:", e);
-    return null;
-  }
+export function pickVaultFile(): Promise<string | null> {
+  return rpcCall((r) => r.request.pickVaultFile({}), null);
 }
 
-export async function pickVaultFolder(): Promise<string | null> {
-  if (!rpc) return null;
-  try {
-    return await rpc.request.pickVaultFolder({});
-  } catch (e) {
-    console.error("[dotlock] pickVaultFolder error:", e);
-    return null;
-  }
+export function pickVaultFolder(): Promise<string | null> {
+  return rpcCall((r) => r.request.pickVaultFolder({}), null);
 }
 
 // ── Keychain / Touch ID ─────────────────────────────────────────────
 
-export async function hasKeychainPassword(
-  vaultPath: string,
-): Promise<boolean> {
-  if (!rpc) return false;
-  try {
-    return await rpc.request.hasKeychainPassword({ vaultPath });
-  } catch (e) {
-    console.error("[dotlock] hasKeychainPassword error:", e);
-    return false;
-  }
+export function hasKeychainPassword(vaultPath: string): Promise<boolean> {
+  return rpcCall((r) => r.request.hasKeychainPassword({ vaultPath }), false);
 }
 
-export async function storeInKeychain(
+export function storeInKeychain(
   vaultPath: string,
   password: string,
 ): Promise<boolean> {
-  if (!rpc) return false;
-  try {
-    return await rpc.request.storeInKeychain({ vaultPath, password });
-  } catch (e) {
-    console.error("[dotlock] storeInKeychain error:", e);
-    return false;
-  }
+  return rpcCall(
+    (r) => r.request.storeInKeychain({ vaultPath, password }),
+    false,
+  );
 }
 
-export async function retrieveFromKeychain(
+export function retrieveFromKeychain(
   vaultPath: string,
 ): Promise<string | null> {
-  if (!rpc) return null;
-  try {
-    return await rpc.request.retrieveFromKeychain({ vaultPath });
-  } catch (e) {
-    console.error("[dotlock] retrieveFromKeychain error:", e);
-    return null;
-  }
+  return rpcCall((r) => r.request.retrieveFromKeychain({ vaultPath }), null);
 }
 
-export async function removeFromKeychain(
-  vaultPath: string,
-): Promise<boolean> {
-  if (!rpc) return false;
-  try {
-    return await rpc.request.removeFromKeychain({ vaultPath });
-  } catch (e) {
-    console.error("[dotlock] removeFromKeychain error:", e);
-    return false;
-  }
+export function removeFromKeychain(vaultPath: string): Promise<boolean> {
+  return rpcCall((r) => r.request.removeFromKeychain({ vaultPath }), false);
 }
 
 // ── Repo operations ─────────────────────────────────────────────────
 
-export async function selectFolder(): Promise<Repo | null> {
-  console.log("[dotlock] selectFolder called, rpc =", !!rpc);
-  if (!rpc) {
-    return null;
-  }
-  try {
-    const result = await rpc.request.selectFolder({});
-    console.log("[dotlock] selectFolder result:", result);
-    return result;
-  } catch (e) {
-    console.error("[dotlock] selectFolder error:", e);
-    return null;
-  }
+export function selectFolder(): Promise<Repo | null> {
+  return rpcCall((r) => r.request.selectFolder({}), null);
 }
 
-export async function getRepos(): Promise<Repo[]> {
-  console.log("[dotlock] getRepos called, rpc =", !!rpc);
-  if (!rpc) {
-    return [];
-  }
-  try {
-    const result = await rpc.request.getRepos({});
-    console.log("[dotlock] getRepos result:", result);
-    return result;
-  } catch (e) {
-    console.error("[dotlock] getRepos error:", e);
-    return [];
-  }
+export function getRepos(): Promise<Repo[]> {
+  return rpcCall((r) => r.request.getRepos({}), []);
 }
 
-export async function getRepo(name: string): Promise<Repo | null> {
-  if (!rpc) {
-    return null;
-  }
-  try {
-    return await rpc.request.getRepo({ name });
-  } catch (e) {
-    console.error("[dotlock] getRepo error:", e);
-    return null;
-  }
+export function getRepo(name: string): Promise<Repo | null> {
+  return rpcCall((r) => r.request.getRepo({ name }), null);
 }
 
-export async function removeRepo(name: string): Promise<boolean> {
-  if (!rpc) {
-    return false;
-  }
-  try {
-    return await rpc.request.removeRepo({ name });
-  } catch (e) {
-    console.error("[dotlock] removeRepo error:", e);
-    return false;
-  }
+export function removeRepo(name: string): Promise<boolean> {
+  return rpcCall((r) => r.request.removeRepo({ name }), false);
 }
 
-export async function importFile(
+export function importFile(
   repoName: string,
   absolutePath: string,
 ): Promise<Repo | null> {
-  if (!rpc) {
-    return null;
-  }
-  try {
-    return await rpc.request.importFile({ repoName, absolutePath });
-  } catch (e) {
-    console.error("[dotlock] importFile error:", e);
-    return null;
-  }
+  return rpcCall((r) => r.request.importFile({ repoName, absolutePath }), null);
 }
 
-export async function restoreFile(
+export function restoreFile(
   repoName: string,
   absolutePath: string,
 ): Promise<Repo | null> {
-  if (!rpc) {
-    return null;
-  }
-  try {
-    return await rpc.request.restoreFile({ repoName, absolutePath });
-  } catch (e) {
-    console.error("[dotlock] restoreFile error:", e);
-    return null;
-  }
+  return rpcCall(
+    (r) => r.request.restoreFile({ repoName, absolutePath }),
+    null,
+  );
 }

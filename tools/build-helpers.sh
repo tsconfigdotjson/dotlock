@@ -6,7 +6,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 OUT_DIR="$PROJECT_DIR/build/helpers"
 SWIFT_SRC="$SCRIPT_DIR/keychain-helper.swift"
 PROFILE="$SCRIPT_DIR/keychain-helper.provisionprofile"
-APP_BUNDLE="$OUT_DIR/keychain-helper.app"
+APP_BUNDLE="$OUT_DIR/dotlock-keychain.app"
 
 BUNDLE_ID="dev.dotlock.keychain-helper"
 
@@ -45,7 +45,7 @@ mkdir -p "$APP_BUNDLE/Contents/MacOS"
 
 echo "[build-helpers] Compiling keychain-helper..."
 swiftc -O \
-  -o "$APP_BUNDLE/Contents/MacOS/keychain-helper" \
+  -o "$APP_BUNDLE/Contents/MacOS/dotlock" \
   "$SWIFT_SRC" \
   -framework Security \
   -framework LocalAuthentication
@@ -61,7 +61,7 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<PLIST
     <key>CFBundleIdentifier</key>
     <string>${BUNDLE_ID}</string>
     <key>CFBundleExecutable</key>
-    <string>keychain-helper</string>
+    <string>dotlock</string>
     <key>CFBundleName</key>
     <string>dotlock</string>
     <key>CFBundleDisplayName</key>
@@ -74,6 +74,8 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<PLIST
     <string>1.0</string>
     <key>LSUIElement</key>
     <true/>
+    <key>DotlockTeamID</key>
+    <string>${TEAM_ID}</string>
 </dict>
 </plist>
 PLIST
@@ -117,7 +119,7 @@ echo "[build-helpers] Verifying..."
 codesign -dvv "$APP_BUNDLE" 2>&1 | grep -E "Authority|Identifier|TeamIdentifier"
 echo ""
 echo "[build-helpers] Entitlements:"
-codesign -d --entitlements - "$APP_BUNDLE/Contents/MacOS/keychain-helper" 2>&1
+codesign -d --entitlements - "$APP_BUNDLE/Contents/MacOS/dotlock" 2>&1
 echo ""
 echo "[build-helpers] Done: $APP_BUNDLE"
-echo "[build-helpers] Binary: $APP_BUNDLE/Contents/MacOS/keychain-helper"
+echo "[build-helpers] Binary: $APP_BUNDLE/Contents/MacOS/dotlock"

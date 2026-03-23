@@ -1,11 +1,6 @@
 import { useState } from "react";
 import * as rpc from "../rpc";
-import {
-  EyeIcon,
-  EyeSlashIcon,
-  FingerprintIcon,
-  LockIcon,
-} from "./icons";
+import { EyeIcon, EyeSlashIcon, FingerprintIcon, LockIcon } from "./icons";
 
 type Props = {
   mode: "open" | "create";
@@ -165,7 +160,6 @@ export function PasswordPrompt({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={handleKeyDown}
-                autoFocus={!hasKeychain || mode === "create"}
                 className="w-full px-3 py-2.5 pr-10 rounded-lg text-[13px] font-mono bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[var(--system-accent)] focus:ring-1 focus:ring-[var(--system-accent)]/30 transition-colors"
               />
               <button

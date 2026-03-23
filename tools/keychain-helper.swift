@@ -15,8 +15,27 @@ import Foundation
 import Security
 import LocalAuthentication
 
-// Must match the keychain-access-groups entitlement
-let keychainAccessGroup = "RQ4599WP39.dev.dotlock.keychain-helper"
+// Read team ID from Info.plist (injected by build-helpers.sh at build time).
+// This avoids hardcoding the team ID in source while remaining reliable when
+// the binary is spawned as a subprocess (where Bundle.main may not resolve).
+let keychainAccessGroup: String = {
+    let bundleID = "dev.dotlock.keychain-helper"
+
+    // Walk from the executable up to the .app bundle and read its Info.plist
+    let execURL = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath()
+    // execURL = …/keychain-helper.app/Contents/MacOS/keychain-helper
+    let contentsURL = execURL.deletingLastPathComponent().deletingLastPathComponent()
+    let plistURL = contentsURL.appendingPathComponent("Info.plist")
+
+    if let plistData = try? Data(contentsOf: plistURL),
+       let plist = try? PropertyListSerialization.propertyList(from: plistData, format: nil) as? [String: Any],
+       let teamID = plist["DotlockTeamID"] as? String,
+       !teamID.isEmpty {
+        return "\(teamID).\(bundleID)"
+    }
+
+    fatalError("Cannot determine team ID — is DotlockTeamID set in Info.plist?")
+}()
 
 // MARK: - Helpers
 
@@ -83,7 +102,7 @@ func store(service: String, account: String) {
 
 func retrieve(service: String, account: String) {
     let context = LAContext()
-    context.localizedReason = "Access your dotlock vault password"
+    context.localizedReason = "unlock your vault"
 
     let query: [String: Any] = [
         kSecClass as String: kSecClassGenericPassword,
