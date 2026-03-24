@@ -115,6 +115,10 @@ export function pickVaultFolder(): Promise<string | null> {
   return rpcCall((r) => r.request.pickVaultFolder({}), null);
 }
 
+export function removeRecentVault(path: string): Promise<boolean> {
+  return rpcCall((r) => r.request.removeRecentVault({ path }), false);
+}
+
 // ── Keychain / Touch ID ─────────────────────────────────────────────
 
 export function hasKeychainPassword(vaultPath: string): Promise<boolean> {

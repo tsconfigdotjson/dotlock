@@ -9,6 +9,7 @@ import {
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { Dashboard } from "./components/Dashboard";
 import { FolderIcon, KeyIcon, LockIcon } from "./components/icons";
+import { Logo } from "./components/Logo";
 import { PasswordPrompt } from "./components/PasswordPrompt";
 import { ProviderDetail } from "./components/ProviderDetail";
 import { RepoDetail } from "./components/RepoDetail";
@@ -39,6 +40,7 @@ type RepoContextType = {
   repos: Repo[];
   loading: boolean;
   addRepo: () => Promise<void>;
+  addingRepo: boolean;
   updateRepo: (repo: Repo) => void;
 };
 
@@ -46,6 +48,7 @@ const RepoContext = createContext<RepoContextType>({
   repos: [],
   loading: true,
   addRepo: async () => {},
+  addingRepo: false,
   updateRepo: () => {},
 });
 
@@ -78,6 +81,7 @@ function UnlockedApp({
 }) {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingRepo, setAddingRepo] = useState(false);
   const location = useLocation();
 
   // Initial load
@@ -97,12 +101,17 @@ function UnlockedApp({
   }, []);
 
   const addRepo = async () => {
-    const repo = await rpc.selectFolder();
-    if (repo) {
-      setRepos((prev) => {
-        const filtered = prev.filter((r) => r.name !== repo.name);
-        return [...filtered, repo];
-      });
+    setAddingRepo(true);
+    try {
+      const repo = await rpc.selectFolder();
+      if (repo) {
+        setRepos((prev) => {
+          const filtered = prev.filter((r) => r.name !== repo.name);
+          return [...filtered, repo];
+        });
+      }
+    } finally {
+      setAddingRepo(false);
     }
   };
 
@@ -133,7 +142,9 @@ function UnlockedApp({
   const activeRepo = location.pathname.match(/^\/repo\/(.+)/)?.[1] || null;
 
   return (
-    <RepoContext.Provider value={{ repos, loading, addRepo, updateRepo }}>
+    <RepoContext.Provider
+      value={{ repos, loading, addRepo, addingRepo, updateRepo }}
+    >
       <div className="h-screen flex border-t border-gray-200/60 dark:border-transparent bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100">
         {/* Sidebar */}
         <aside className="w-52 shrink-0 flex flex-col border-r border-gray-200/60 dark:border-white/[0.06] bg-gray-50/80 dark:bg-[#252525]/80 backdrop-blur-xl">
@@ -147,9 +158,7 @@ function UnlockedApp({
               className="flex items-center gap-2"
               style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
             >
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                <LockIcon size={14} className="text-white" />
-              </div>
+              <Logo size="sm" />
               <span className="font-semibold text-sm tracking-tight text-gray-800 dark:text-gray-200">
                 dotlock
               </span>

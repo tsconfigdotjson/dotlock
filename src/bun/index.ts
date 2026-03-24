@@ -21,7 +21,11 @@ import {
   removeRepo as removeRepoOp,
   restoreFile as restoreFileOp,
 } from "./operations";
-import { addRecentVault, getRecentVaults } from "./recentVaults";
+import {
+  addRecentVault,
+  getRecentVaults,
+  removeRecentVault,
+} from "./recentVaults";
 import { scanFolder } from "./scanner";
 import { VaultManager } from "./vault";
 import { fileWatcher } from "./watcher";
@@ -119,6 +123,15 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
           allowsMultipleSelection: false,
         });
         return paths[0] || null;
+      },
+
+      removeRecentVault: async ({ path }) => {
+        try {
+          await removeRecentVault(path);
+          return true;
+        } catch {
+          return false;
+        }
       },
 
       pickVaultFolder: async () => {

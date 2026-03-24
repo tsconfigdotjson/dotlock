@@ -17,7 +17,12 @@ import {
   removeRepo,
   restoreFile,
 } from "../operations";
-import { addRecentVault, getRecentVaults, setDataDir } from "../recentVaults";
+import {
+  addRecentVault,
+  getRecentVaults,
+  removeRecentVault,
+  setDataDir,
+} from "../recentVaults";
 import { scanFolder } from "../scanner";
 import { VaultManager } from "../vault";
 import { fileWatcher } from "../watcher";
@@ -428,6 +433,39 @@ describe("recentVaults tracks vault lifecycle", () => {
     });
     recents = await getRecentVaults();
     expect(recents[0].path).toBe(vaultFile);
+  });
+
+  test("removing a recent vault persists across reload", async () => {
+    // Add two vaults
+    await addRecentVault({
+      path: vaultFile,
+      name: basename(vaultFile, ".dotlock"),
+      lastOpened: new Date().toISOString(),
+    });
+
+    const vaultFile2 = join(TEST_DIR, "to-remove.dotlock");
+    const v2 = new VaultManager();
+    await v2.createVault(vaultFile2, "pass2");
+    await addRecentVault({
+      path: vaultFile2,
+      name: basename(vaultFile2, ".dotlock"),
+      lastOpened: new Date().toISOString(),
+    });
+
+    let recents = await getRecentVaults();
+    expect(recents.length).toBe(2);
+
+    // Remove one
+    await removeRecentVault(vaultFile2);
+
+    recents = await getRecentVaults();
+    expect(recents.length).toBe(1);
+    expect(recents[0].path).toBe(vaultFile);
+
+    // Simulate app restart by re-reading from disk
+    recents = await getRecentVaults();
+    expect(recents.length).toBe(1);
+    expect(recents.find((r) => r.path === vaultFile2)).toBeUndefined();
   });
 });
 

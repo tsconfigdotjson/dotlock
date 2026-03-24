@@ -6,9 +6,11 @@ import {
   ClockIcon,
   FilePlusIcon,
   FolderOpenIcon,
+  LoaderIcon,
   LockIcon,
   XIcon,
 } from "./icons";
+import { Logo } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
 
 type Props = {
@@ -28,6 +30,8 @@ export function VaultPicker({
   const [creating, setCreating] = useState(false);
   const [vaultName, setVaultName] = useState("");
   const [folderPath, setFolderPath] = useState<string | null>(null);
+  const [pickingFolder, setPickingFolder] = useState(false);
+  const [pickingFile, setPickingFile] = useState(false);
 
   const sanitizeName = (name: string) =>
     name.trim().replace(/[^a-zA-Z0-9._-]/g, "-");
@@ -37,21 +41,31 @@ export function VaultPicker({
   }, []);
 
   const handleOpenExisting = async () => {
-    const path = await rpc.pickVaultFile();
-    if (path) {
-      const name =
-        path
-          .split("/")
-          .pop()
-          ?.replace(/\.dotlock$/, "") || "vault";
-      onOpenVault(path, name);
+    setPickingFile(true);
+    try {
+      const path = await rpc.pickVaultFile();
+      if (path) {
+        const name =
+          path
+            .split("/")
+            .pop()
+            ?.replace(/\.dotlock$/, "") || "vault";
+        onOpenVault(path, name);
+      }
+    } finally {
+      setPickingFile(false);
     }
   };
 
   const handleChooseFolder = async () => {
-    const path = await rpc.pickVaultFolder();
-    if (path) {
-      setFolderPath(path);
+    setPickingFolder(true);
+    try {
+      const path = await rpc.pickVaultFolder();
+      if (path) {
+        setFolderPath(path);
+      }
+    } finally {
+      setPickingFolder(false);
     }
   };
 
@@ -70,9 +84,8 @@ export function VaultPicker({
 
   const handleRemoveRecent = async (e: React.MouseEvent, path: string) => {
     e.stopPropagation();
-    // Remove from recents via backend — for now just filter locally
-    // (removeRecentVault RPC not exposed, but we can call the existing ones)
     setRecents((prev) => prev.filter((r) => r.path !== path));
+    await rpc.removeRecentVault(path);
   };
 
   const resolvedPath =
@@ -93,8 +106,8 @@ export function VaultPicker({
         <div className="w-full max-w-md">
           {/* Logo + title */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-4">
-              <LockIcon size={28} className="text-white" />
+            <div className="mb-4">
+              <Logo />
             </div>
             <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               dotlock
@@ -132,8 +145,12 @@ export function VaultPicker({
                 <button
                   type="button"
                   onClick={handleChooseFolder}
-                  className="w-full px-3 py-2.5 rounded-lg text-[13px] font-medium border border-gray-200 dark:border-white/[0.1] bg-white dark:bg-white/[0.05] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-colors text-left"
+                  disabled={pickingFolder}
+                  className="w-full px-3 py-2.5 rounded-lg text-[13px] font-medium border border-gray-200 dark:border-white/[0.1] bg-white dark:bg-white/[0.05] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.08] transition-colors text-left flex items-center gap-2"
                 >
+                  {pickingFolder && (
+                    <LoaderIcon size={14} className="animate-spin shrink-0" />
+                  )}
                   {folderPath || "Choose folder..."}
                 </button>
                 {resolvedPath && (
@@ -182,9 +199,14 @@ export function VaultPicker({
                 <button
                   type="button"
                   onClick={handleOpenExisting}
+                  disabled={pickingFile}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-medium border border-gray-200 dark:border-white/[0.1] bg-white dark:bg-white/[0.05] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.08] shadow-sm transition-colors"
                 >
-                  <FolderOpenIcon size={16} />
+                  {pickingFile ? (
+                    <LoaderIcon size={16} className="animate-spin" />
+                  ) : (
+                    <FolderOpenIcon size={16} />
+                  )}
                   Open Existing
                 </button>
               </div>
