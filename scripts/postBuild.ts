@@ -1,6 +1,6 @@
 import { $ } from "bun";
-import { readdir } from "fs/promises";
-import { join } from "path";
+import { readdir } from "node:fs/promises";
+import { join } from "node:path";
 
 const buildDir = process.env.ELECTROBUN_BUILD_DIR;
 if (!buildDir) {

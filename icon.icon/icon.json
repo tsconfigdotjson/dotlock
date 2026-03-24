@@ -23,7 +23,7 @@
           "image-name" : "env-vault-icon-1024.png",
           "name" : "env-vault-icon-1024",
           "position" : {
-            "scale" : 1,
+            "scale" : 0.85,
             "translation-in-points" : [
               0,
               -18
