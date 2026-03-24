@@ -40,6 +40,7 @@ type RepoContextType = {
   repos: Repo[];
   loading: boolean;
   addRepo: () => Promise<void>;
+  addingRepo: boolean;
   updateRepo: (repo: Repo) => void;
 };
 
@@ -47,6 +48,7 @@ const RepoContext = createContext<RepoContextType>({
   repos: [],
   loading: true,
   addRepo: async () => {},
+  addingRepo: false,
   updateRepo: () => {},
 });
 
@@ -79,6 +81,7 @@ function UnlockedApp({
 }) {
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingRepo, setAddingRepo] = useState(false);
   const location = useLocation();
 
   // Initial load
@@ -98,12 +101,17 @@ function UnlockedApp({
   }, []);
 
   const addRepo = async () => {
-    const repo = await rpc.selectFolder();
-    if (repo) {
-      setRepos((prev) => {
-        const filtered = prev.filter((r) => r.name !== repo.name);
-        return [...filtered, repo];
-      });
+    setAddingRepo(true);
+    try {
+      const repo = await rpc.selectFolder();
+      if (repo) {
+        setRepos((prev) => {
+          const filtered = prev.filter((r) => r.name !== repo.name);
+          return [...filtered, repo];
+        });
+      }
+    } finally {
+      setAddingRepo(false);
     }
   };
 
@@ -134,7 +142,9 @@ function UnlockedApp({
   const activeRepo = location.pathname.match(/^\/repo\/(.+)/)?.[1] || null;
 
   return (
-    <RepoContext.Provider value={{ repos, loading, addRepo, updateRepo }}>
+    <RepoContext.Provider
+      value={{ repos, loading, addRepo, addingRepo, updateRepo }}
+    >
       <div className="h-screen flex border-t border-gray-200/60 dark:border-transparent bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100">
         {/* Sidebar */}
         <aside className="w-52 shrink-0 flex flex-col border-r border-gray-200/60 dark:border-white/[0.06] bg-gray-50/80 dark:bg-[#252525]/80 backdrop-blur-xl">

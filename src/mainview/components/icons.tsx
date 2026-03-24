@@ -18,6 +18,7 @@ export {
   Folder as FolderIcon,
   FolderOpen as FolderOpenIcon,
   KeyRound as KeyIcon,
+  Loader2 as LoaderIcon,
   Lock as LockIcon,
   Monitor as MonitorIcon,
   Moon as MoonIcon,
