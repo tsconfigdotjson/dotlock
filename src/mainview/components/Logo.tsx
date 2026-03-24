@@ -1,4 +1,4 @@
-import * as React from "react";
+import type * as React from "react";
 
 const LogoSvg: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg
@@ -56,18 +56,13 @@ type LogoProps = {
 };
 
 export function Logo({ size = "lg" }: LogoProps) {
-  const cls =
-    size === "sm"
-      ? "w-7 h-7 rounded-lg"
-      : "w-14 h-14 rounded-2xl";
+  const cls = size === "sm" ? "w-7 h-7 rounded-lg" : "w-14 h-14 rounded-2xl";
 
   return (
     <div
       className={`${cls} bg-gradient-to-br from-gray-500 to-gray-700 flex items-center justify-center`}
     >
-      <LogoSvg
-        className={size === "sm" ? "w-4 h-4" : "w-8 h-8"}
-      />
+      <LogoSvg className={size === "sm" ? "w-4 h-4" : "w-8 h-8"} />
     </div>
   );
 }

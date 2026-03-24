@@ -71,9 +71,8 @@ export function VaultPicker({
 
   const handleRemoveRecent = async (e: React.MouseEvent, path: string) => {
     e.stopPropagation();
-    // Remove from recents via backend — for now just filter locally
-    // (removeRecentVault RPC not exposed, but we can call the existing ones)
     setRecents((prev) => prev.filter((r) => r.path !== path));
+    await rpc.removeRecentVault(path);
   };
 
   const resolvedPath =

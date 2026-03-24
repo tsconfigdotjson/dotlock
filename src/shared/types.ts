@@ -76,6 +76,10 @@ export type DotlockRPC = {
         params: Record<string, never>;
         response: string | null;
       };
+      removeRecentVault: {
+        params: { path: string };
+        response: boolean;
+      };
 
       // Keychain / Touch ID
       hasKeychainPassword: {
