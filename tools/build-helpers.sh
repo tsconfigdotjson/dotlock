@@ -18,10 +18,14 @@ if [ ! -f "$PROFILE" ]; then
   exit 1
 fi
 
-# Find signing identity
-IDENTITY=$(security find-identity -v -p codesigning | grep "Apple Development" | head -1 | sed 's/.*"\(.*\)"/\1/')
+# Find signing identity: prefer Developer ID Application (distribution),
+# fall back to Apple Development (local dev).
+IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/' || true)
 if [ -z "$IDENTITY" ]; then
-  echo "[build-helpers] ERROR: No Apple Development certificate found."
+  IDENTITY=$(security find-identity -v -p codesigning | grep "Apple Development" | head -1 | sed 's/.*"\(.*\)"/\1/' || true)
+fi
+if [ -z "$IDENTITY" ]; then
+  echo "[build-helpers] ERROR: No signing certificate found (tried Developer ID Application, Apple Development)."
   exit 1
 fi
 

@@ -1,5 +1,6 @@
 import { $ } from "bun";
-import { readdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { cp, readdir } from "node:fs/promises";
 import { join } from "node:path";
 
 const buildDir = process.env.ELECTROBUN_BUILD_DIR;
@@ -18,6 +19,7 @@ if (!appDir) {
 
 const bundlePath = join(buildDir, appDir);
 const resourcesPath = join(bundlePath, "Contents", "Resources");
+const macosPath = join(bundlePath, "Contents", "MacOS");
 
 // Compile icon.icon directly — produces Assets.car (Liquid Glass) + icon.icns (fallback)
 const result =
@@ -44,3 +46,20 @@ for (const [key, value] of [
 }
 
 console.log("[postBuild] Updated Info.plist");
+
+// Copy the signed keychain helper .app bundle into Contents/MacOS/
+// so it's available at runtime via the bundled path in keychain.ts
+// buildDir is e.g. build/canary-macos-arm64/, helpers are at build/helpers/
+const helperSrc = join(buildDir, "..", "helpers", "dotlock-keychain.app");
+const helperDest = join(macosPath, "dotlock-keychain.app");
+
+if (existsSync(helperSrc)) {
+  await cp(helperSrc, helperDest, { recursive: true });
+  console.log(`[postBuild] Bundled keychain helper → ${appDir}/Contents/MacOS/dotlock-keychain.app`);
+} else {
+  console.warn(
+    "[postBuild] WARNING: keychain helper not found at",
+    helperSrc,
+  );
+  console.warn("[postBuild] Run 'bun run build:helpers' first.");
+}

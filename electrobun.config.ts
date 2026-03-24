@@ -20,6 +20,8 @@ export default {
     watchIgnore: ["dist/**"],
     mac: {
       bundleCEF: false,
+      codesign: true,
+      notarize: true,
     },
     linux: {
       bundleCEF: false,
