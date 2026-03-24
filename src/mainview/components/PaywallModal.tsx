@@ -117,12 +117,15 @@ export function PaywallModal({
             <XIcon size={18} />
           </button>
 
-          {/* Icon with subtle gradient bg */}
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-50 to-violet-50 dark:from-blue-500/10 dark:to-violet-500/10 flex items-center justify-center mb-5 shadow-sm shadow-blue-100/50 dark:shadow-none">
-            <SparklesIcon
-              size={26}
-              className="text-blue-500 dark:text-blue-400"
-            />
+          {/* Icon */}
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5"
+            style={{
+              backgroundColor:
+                "color-mix(in srgb, var(--system-accent) 10%, transparent)",
+            }}
+          >
+            <SparklesIcon size={26} style={{ color: "var(--system-accent)" }} />
           </div>
 
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 tracking-tight">
