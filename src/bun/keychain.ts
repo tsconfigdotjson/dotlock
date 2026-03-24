@@ -35,8 +35,8 @@ function getHelperPath(): string | null {
     dir = parent;
   }
 
-  // Bundled: next to the main executable in Contents/MacOS/
-  const bundled = join(dirname(process.execPath), helperRelative);
+  // Bundled: in Contents/Helpers/ (sibling to Contents/MacOS/ where bun lives)
+  const bundled = join(dirname(process.execPath), "..", "Helpers", helperRelative);
   if (existsSync(bundled)) {
     return bundled;
   }
