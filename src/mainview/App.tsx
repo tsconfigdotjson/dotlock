@@ -161,7 +161,6 @@ function UnlockedApp({
   const handlePaywallActivated = () => {
     setLicensed(true);
     setShowPaywall(false);
-    doAddRepo();
   };
 
   return (

@@ -4,7 +4,6 @@ import {
   HeartIcon,
   InfinityIcon,
   LoaderIcon,
-  ShieldCheckIcon,
   SparklesIcon,
   XIcon,
   ZapIcon,
@@ -20,7 +19,6 @@ export function PaywallModal({
   const [key, setKey] = useState("");
   const [activating, setActivating] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
 
   const handleKeyChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const raw = e.target.value.replace(/[^0-9A-Za-z]/g, "").toUpperCase();
@@ -38,8 +36,7 @@ export function PaywallModal({
     const result = await rpc.activateLicense(key.trim());
     setActivating(false);
     if (result.success) {
-      setSuccess(true);
-      setTimeout(onActivated, 1400);
+      onActivated();
     } else {
       setError(result.error || "Invalid license key");
     }
@@ -61,33 +58,6 @@ export function PaywallModal({
     document.addEventListener("keydown", handleEsc);
     return () => document.removeEventListener("keydown", handleEsc);
   }, [onClose]);
-
-  // ── Success state ──────────────────────────────────────────────
-
-  if (success) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
-        <div className="absolute inset-0 bg-black/25 dark:bg-black/50 backdrop-blur-sm" />
-        <div className="relative w-full max-w-md bg-white dark:bg-[#2a2a2a] rounded-xl shadow-2xl dark:shadow-black/40 border border-gray-200/60 dark:border-white/[0.08] overflow-hidden text-center py-12 px-8">
-          <div className="w-16 h-16 rounded-2xl bg-green-50 dark:bg-green-500/10 flex items-center justify-center mx-auto mb-5">
-            <ShieldCheckIcon
-              size={32}
-              className="text-green-500 dark:text-green-400"
-            />
-          </div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
-            License Activated
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-xs mx-auto">
-            Thank you for supporting independent software development. All
-            features are now unlocked.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Main paywall ───────────────────────────────────────────────
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
