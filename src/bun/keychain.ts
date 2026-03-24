@@ -36,7 +36,12 @@ function getHelperPath(): string | null {
   }
 
   // Bundled: in Contents/Helpers/ (sibling to Contents/MacOS/ where bun lives)
-  const bundled = join(dirname(process.execPath), "..", "Helpers", helperRelative);
+  const bundled = join(
+    dirname(process.execPath),
+    "..",
+    "Helpers",
+    helperRelative,
+  );
   if (existsSync(bundled)) {
     return bundled;
   }

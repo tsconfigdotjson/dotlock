@@ -1,7 +1,7 @@
-import { $ } from "bun";
 import { existsSync } from "node:fs";
 import { cp, readdir } from "node:fs/promises";
 import { join } from "node:path";
+import { $ } from "bun";
 
 const buildDir = process.env.ELECTROBUN_BUILD_DIR;
 if (!buildDir) {
@@ -57,11 +57,10 @@ if (existsSync(helperSrc)) {
   const { mkdirSync } = await import("node:fs");
   mkdirSync(helpersPath, { recursive: true });
   await cp(helperSrc, helperDest, { recursive: true });
-  console.log(`[postBuild] Bundled keychain helper → ${appDir}/Contents/Helpers/dotlock-keychain.app`);
-} else {
-  console.warn(
-    "[postBuild] WARNING: keychain helper not found at",
-    helperSrc,
+  console.log(
+    `[postBuild] Bundled keychain helper → ${appDir}/Contents/Helpers/dotlock-keychain.app`,
   );
+} else {
+  console.warn("[postBuild] WARNING: keychain helper not found at", helperSrc);
   console.warn("[postBuild] Run 'bun run build:helpers' first.");
 }
