@@ -1,5 +1,5 @@
-import { $ } from "bun";
 import { join } from "node:path";
+import { $ } from "bun";
 
 const bundlePath = process.env.ELECTROBUN_WRAPPER_BUNDLE_PATH;
 if (!bundlePath) {
