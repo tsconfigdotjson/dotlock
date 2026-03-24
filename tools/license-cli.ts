@@ -56,8 +56,12 @@ if (command === "keygen") {
   console.log("Embed this public key in src/bun/license.ts:");
   console.log(publicKey);
 } else if (command === "generate") {
+  const repoKeyPath = join(import.meta.dir, "license-private.pem");
   const privKeyPath =
-    getArg("private-key") ?? join(homedir(), ".dotlock", "license-private.pem");
+    getArg("private-key") ??
+    (existsSync(repoKeyPath)
+      ? repoKeyPath
+      : join(homedir(), ".dotlock", "license-private.pem"));
 
   if (!existsSync(privKeyPath)) {
     console.error(`Private key not found: ${privKeyPath}`);
