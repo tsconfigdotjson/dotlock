@@ -6,6 +6,10 @@ export default {
     identifier: "dev.dotlock.app",
     version: "1.0.1",
   },
+  scripts: {
+    postBuild: "scripts/postBuild.ts",
+    postWrap: "scripts/postWrap.ts",
+  },
   build: {
     // Vite builds to dist/, we copy from there
     copy: {
