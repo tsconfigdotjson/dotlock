@@ -9,6 +9,7 @@ import {
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { Dashboard } from "./components/Dashboard";
 import { FolderIcon, KeyIcon, LockIcon } from "./components/icons";
+import { Logo } from "./components/Logo";
 import { PasswordPrompt } from "./components/PasswordPrompt";
 import { ProviderDetail } from "./components/ProviderDetail";
 import { RepoDetail } from "./components/RepoDetail";
@@ -147,9 +148,7 @@ function UnlockedApp({
               className="flex items-center gap-2"
               style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
             >
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                <LockIcon size={14} className="text-white" />
-              </div>
+              <Logo size="sm" />
               <span className="font-semibold text-sm tracking-tight text-gray-800 dark:text-gray-200">
                 dotlock
               </span>

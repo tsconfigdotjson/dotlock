@@ -9,6 +9,7 @@ import {
   LockIcon,
   XIcon,
 } from "./icons";
+import { Logo } from "./Logo";
 import { ThemeToggle } from "./ThemeToggle";
 
 type Props = {
@@ -93,8 +94,8 @@ export function VaultPicker({
         <div className="w-full max-w-md">
           {/* Logo + title */}
           <div className="flex flex-col items-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-4">
-              <LockIcon size={28} className="text-white" />
+            <div className="mb-4">
+              <Logo />
             </div>
             <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               dotlock
