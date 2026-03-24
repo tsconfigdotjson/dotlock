@@ -17,6 +17,8 @@ export {
   Fingerprint as FingerprintIcon,
   Folder as FolderIcon,
   FolderOpen as FolderOpenIcon,
+  Heart as HeartIcon,
+  Infinity as InfinityIcon,
   KeyRound as KeyIcon,
   Loader2 as LoaderIcon,
   Lock as LockIcon,
@@ -25,6 +27,9 @@ export {
   Pencil as PencilIcon,
   Plus as PlusIcon,
   RefreshCw as RefreshIcon,
+  ShieldCheck as ShieldCheckIcon,
+  Sparkles as SparklesIcon,
   Sun as SunIcon,
   X as XIcon,
+  Zap as ZapIcon,
 } from "lucide-react";
