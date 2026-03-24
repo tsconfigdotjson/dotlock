@@ -19,9 +19,10 @@ if [ ! -f "$PROFILE" ]; then
 fi
 
 # Find signing identity
-IDENTITY=$(security find-identity -v -p codesigning | grep "Apple Development" | head -1 | sed 's/.*"\(.*\)"/\1/')
+IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/' || true)
 if [ -z "$IDENTITY" ]; then
-  echo "[build-helpers] ERROR: No Apple Development certificate found."
+  echo "[build-helpers] ERROR: No Developer ID Application certificate found."
+  echo "[build-helpers] Create one in Xcode: Settings → Accounts → Manage Certificates → + → Developer ID Application"
   exit 1
 fi
 

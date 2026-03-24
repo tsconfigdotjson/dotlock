@@ -4,3 +4,4 @@ dist/
 artifacts/
 .electrobun/
 *.tsbuildinfo
+.DS_Store
