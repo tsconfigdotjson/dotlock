@@ -1,3 +1,9 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+
+export const Route = createFileRoute("/")({
+  component: Index,
+});
+
 type TerminalLine = {
   id: string;
   type: "command" | "output" | "comment" | "empty";
@@ -9,13 +15,13 @@ const features = [
     index: "01",
     title: "ENCRYPTED BACKUP",
     description:
-      "Every .env file across every project, backed up in a single encrypted .dotlock vault. Your files on disk stay as-is \u2014 dotlock just makes sure you never lose them.",
+      "Every .env file across every project, backed up in a single encrypted .dotlock vault. Your files on disk stay as-is — dotlock just makes sure you never lose them.",
   },
   {
     index: "02",
     title: "DRIFT DETECTION",
     description:
-      "Real-time file watching via native FSEvents. If someone \u2014 or something \u2014 changes or deletes your .env files, you'll know instantly and can restore from your vault.",
+      "Real-time file watching via native FSEvents. If someone — or something — changes or deletes your .env files, you'll know instantly and can restore from your vault.",
   },
   {
     index: "03",
@@ -210,6 +216,12 @@ function Nav() {
           >
             VERIFY
           </a>
+          <Link
+            to="/purchase"
+            className="text-sm font-semibold hover:text-cobalt transition-colors duration-300 ease-linear hidden md:block"
+          >
+            PURCHASE
+          </Link>
           <a
             href="#access"
             className="bg-cobalt text-cream px-4 py-2 text-sm font-bold tracking-wider hover:bg-jet transition-colors duration-300 ease-linear"
@@ -469,10 +481,10 @@ function Footer() {
 }
 
 // ---------------------------------------------------------------------------
-// App
+// Page
 // ---------------------------------------------------------------------------
 
-export default function App() {
+function Index() {
   return (
     <div className="bg-cream text-jet min-h-screen">
       <Nav />
