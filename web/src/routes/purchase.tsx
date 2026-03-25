@@ -113,8 +113,8 @@ function Purchase() {
             </h1>
 
             <p className="text-lg text-deep-gray leading-relaxed max-w-lg mb-12">
-              Sign in to purchase dotlock, recover your license key, or
-              access your existing license. One-time purchase. No subscription.
+              Sign in to purchase dotlock, recover your license key, or access
+              your existing license. One-time purchase. No subscription.
             </p>
 
             <div className="flex flex-col gap-4 max-w-sm">

@@ -5,5 +5,9 @@ import { defineConfig } from "vite";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [TanStackRouterVite({ quoteStyle: "single" }), react(), tailwindcss()],
+  plugins: [
+    TanStackRouterVite({ quoteStyle: "single" }),
+    react(),
+    tailwindcss(),
+  ],
 });
