@@ -62,7 +62,7 @@ export function Logo({ size = "lg" }: LogoProps) {
     <div
       className={`${cls} bg-gradient-to-br from-gray-500 to-gray-700 flex items-center justify-center`}
     >
-      <LogoSvg className={size === "sm" ? "w-4 h-4" : "w-8 h-8"} />
+      <LogoSvg className={size === "sm" ? "w-5 h-5" : "w-10 h-10"} />
     </div>
   );
 }
