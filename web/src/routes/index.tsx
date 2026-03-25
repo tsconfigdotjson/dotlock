@@ -1,3 +1,10 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { Logo } from "../components/Logo";
+
+export const Route = createFileRoute("/")({
+  component: Index,
+});
+
 type TerminalLine = {
   id: string;
   type: "command" | "output" | "comment" | "empty";
@@ -9,13 +16,13 @@ const features = [
     index: "01",
     title: "ENCRYPTED BACKUP",
     description:
-      "Every .env file across every project, backed up in a single encrypted .dotlock vault. Your files on disk stay as-is \u2014 dotlock just makes sure you never lose them.",
+      "Every .env file across every project, backed up in a single encrypted .dotlock vault. Your files on disk stay as-is — dotlock just makes sure you never lose them.",
   },
   {
     index: "02",
     title: "DRIFT DETECTION",
     description:
-      "Real-time file watching via native FSEvents. If someone \u2014 or something \u2014 changes or deletes your .env files, you'll know instantly and can restore from your vault.",
+      "Real-time file watching via native FSEvents. If someone — or something — changes or deletes your .env files, you'll know instantly and can restore from your vault.",
   },
   {
     index: "03",
@@ -129,63 +136,7 @@ function Nav() {
     <nav className="sticky top-0 z-50 h-20 border-b border-divider bg-cream/95 backdrop-blur-sm">
       <div className="h-full flex items-center justify-between px-6 lg:px-8">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-gray-500 to-gray-700 flex items-center justify-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="20 10.25 80 103.75"
-              className="w-5 h-5"
-            >
-              <defs>
-                <mask id="m">
-                  <rect
-                    width="80"
-                    height="56"
-                    x="20"
-                    y="58"
-                    fill="#fff"
-                    rx="12"
-                  />
-                  <text
-                    x="60"
-                    y="80"
-                    fontFamily="'SF Mono','Menlo','Monaco','Courier New',monospace"
-                    fontSize="17"
-                    fontWeight="700"
-                    textAnchor="middle"
-                  >
-                    $ENV
-                  </text>
-                  <path stroke="#000" strokeWidth="1.2" d="M32 88h56" />
-                  <text
-                    x="60"
-                    y="103"
-                    fontFamily="'SF Mono','Menlo','Monaco','Courier New',monospace"
-                    fontSize="11"
-                    letterSpacing="3"
-                    textAnchor="middle"
-                  >
-                    &#x25CF;&#x25CF;&#x25CF;
-                  </text>
-                </mask>
-              </defs>
-              <path
-                fill="none"
-                stroke="#FFF"
-                strokeLinecap="round"
-                strokeWidth="7.5"
-                d="M34 62V40a26 26 0 0 1 52 0v22"
-              />
-              <rect
-                width="80"
-                height="56"
-                x="20"
-                y="58"
-                fill="#FFF"
-                mask="url(#m)"
-                rx="12"
-              />
-            </svg>
-          </div>
+          <Logo />
           <span
             className="text-base font-bold tracking-tight"
             style={{
@@ -469,10 +420,10 @@ function Footer() {
 }
 
 // ---------------------------------------------------------------------------
-// App
+// Page
 // ---------------------------------------------------------------------------
 
-export default function App() {
+function Index() {
   return (
     <div className="bg-cream text-jet min-h-screen">
       <Nav />
