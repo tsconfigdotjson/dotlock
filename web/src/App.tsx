@@ -33,9 +33,9 @@ const reasons = [
   },
   {
     index: '002',
-    title: 'NO CLOUD SYNC',
+    title: 'YOUR CLOUD, YOUR CHOICE',
     description:
-      'Your vault never leaves your disk. No accounts, no servers, no sync conflicts. Just a file on your machine.',
+      'Your vault is just a file. Keep it local, or sync it with iCloud Drive, Google Drive, Dropbox — whatever you already use. No proprietary cloud required.',
   },
   {
     index: '003',
@@ -131,7 +131,7 @@ function Nav() {
               <rect width="80" height="56" x="20" y="58" fill="#FFF" mask="url(#m)" rx="12" />
             </svg>
           </div>
-          <span className="text-base font-bold tracking-tight">DOTLOCK</span>
+          <span className="text-base font-bold tracking-tight" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif' }}>dotlock</span>
         </div>
 
         <div className="flex items-center gap-6">
