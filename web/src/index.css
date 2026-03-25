@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  --color-cream: #E3E2DE;
+  --color-cream: #e3e2de;
   --color-cobalt: #333333;
   --color-jet: #141414;
   --color-deep-gray: #444343;
-  --color-muted: #7A7A7A;
-  --color-divider: #C7C7C7;
+  --color-muted: #7a7a7a;
+  --color-divider: #c7c7c7;
 
-  --font-sans: 'General Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  --font-sans: "General Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
 }
 
 html {
@@ -29,8 +29,14 @@ body {
 }
 
 @keyframes blink {
-  0%, 49% { opacity: 1; }
-  50%, 100% { opacity: 0; }
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
 }
 
 .cursor-blink {

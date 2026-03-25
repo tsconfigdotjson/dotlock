@@ -1,69 +1,78 @@
 type TerminalLine = {
-  type: 'command' | 'output' | 'comment' | 'empty'
-  text?: string
-}
+  id: string;
+  type: "command" | "output" | "comment" | "empty";
+  text?: string;
+};
 
 const features = [
   {
-    index: '01',
-    title: 'ENCRYPTED BACKUP',
+    index: "01",
+    title: "ENCRYPTED BACKUP",
     description:
-      'Every .env file across every project, backed up in a single encrypted .dotlock vault. Your files on disk stay as-is \u2014 dotlock just makes sure you never lose them.',
+      "Every .env file across every project, backed up in a single encrypted .dotlock vault. Your files on disk stay as-is \u2014 dotlock just makes sure you never lose them.",
   },
   {
-    index: '02',
-    title: 'DRIFT DETECTION',
+    index: "02",
+    title: "DRIFT DETECTION",
     description:
       "Real-time file watching via native FSEvents. If someone \u2014 or something \u2014 changes or deletes your .env files, you'll know instantly and can restore from your vault.",
   },
   {
-    index: '03',
-    title: 'BIOMETRIC UNLOCK',
+    index: "03",
+    title: "BIOMETRIC UNLOCK",
     description:
-      'Vault password stored in the macOS Keychain, guarded by Touch ID. No cloud auth. No OAuth dance. Just press your thumb on the thing.',
+      "Vault password stored in the macOS Keychain, guarded by Touch ID. No cloud auth. No OAuth dance. Just press your thumb on the thing.",
   },
-]
+];
 
 const reasons = [
   {
-    index: '001',
-    title: 'ZERO NETWORK ACCESS',
+    index: "001",
+    title: "ZERO NETWORK ACCESS",
     description:
       "Not 'minimal network.' Not 'only phones home for updates.' Zero. The macOS sandbox enforces it at the kernel level.",
   },
   {
-    index: '002',
-    title: 'YOUR CLOUD, YOUR CHOICE',
+    index: "002",
+    title: "YOUR CLOUD, YOUR CHOICE",
     description:
-      'Your vault is just a file. Keep it local, or sync it with iCloud Drive, Google Drive, Dropbox — whatever you already use. No proprietary cloud required.',
+      "Your vault is just a file. Keep it local, or sync it with iCloud Drive, Google Drive, Dropbox — whatever you already use. No proprietary cloud required.",
   },
   {
-    index: '003',
-    title: 'NO TELEMETRY',
+    index: "003",
+    title: "NO TELEMETRY",
     description:
       "We don't know how many vaults you have. We don't want to know.",
   },
   {
-    index: '004',
-    title: 'NATIVE MACOS',
+    index: "004",
+    title: "NATIVE MACOS",
     description:
-      'Electrobun, not Electron. Real native performance, not a browser in a trenchcoat.',
+      "Electrobun, not Electron. Real native performance, not a browser in a trenchcoat.",
   },
-]
+];
 
 const networkLines: TerminalLine[] = [
-  { type: 'comment', text: 'check if dotlock has any network entitlements' },
   {
-    type: 'command',
-    text: 'codesign -d --entitlements :- /Applications/dotlock.app \\',
+    id: "n1",
+    type: "comment",
+    text: "check if dotlock has any network entitlements",
   },
-  { type: 'output', text: '    | grep -c "network"' },
-  { type: 'empty' },
-  { type: 'output', text: '0' },
-  { type: 'empty' },
-  { type: 'comment', text: "zero. your secrets aren't going anywhere." },
-]
-
+  {
+    id: "n2",
+    type: "command",
+    text: "codesign -d --entitlements :- /Applications/dotlock.app \\",
+  },
+  { id: "n3", type: "output", text: '    | grep -c "network"' },
+  { id: "n4", type: "empty" },
+  { id: "n5", type: "output", text: "0" },
+  { id: "n6", type: "empty" },
+  {
+    id: "n7",
+    type: "comment",
+    text: "zero. your secrets aren't going anywhere.",
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Shared components
@@ -76,27 +85,30 @@ function SidebarLabel({ children }: { children: React.ReactNode }) {
         {children}
       </span>
     </div>
-  )
+  );
 }
 
 function Terminal({ lines }: { lines: TerminalLine[] }) {
   return (
     <div className="border border-divider bg-jet font-mono text-sm leading-relaxed overflow-x-auto">
       <div className="p-5 lg:p-6">
-        {lines.map((line, i) => (
-          <div key={i} className={line.type === 'empty' ? 'h-5' : undefined}>
-            {line.type === 'command' && (
+        {lines.map((line) => (
+          <div
+            key={line.id}
+            className={line.type === "empty" ? "h-5" : undefined}
+          >
+            {line.type === "command" && (
               <>
                 <span className="text-cobalt select-none">$ </span>
                 <span className="text-cream">{line.text}</span>
               </>
             )}
-            {line.type === 'output' && (
+            {line.type === "output" && (
               <span className="text-cream/70">{line.text}</span>
             )}
-            {line.type === 'comment' && (
+            {line.type === "comment" && (
               <span className="text-muted">
-                {'# '}
+                {"# "}
                 {line.text}
               </span>
             )}
@@ -105,7 +117,7 @@ function Terminal({ lines }: { lines: TerminalLine[] }) {
         <span className="inline-block w-2 h-4 bg-cream/60 cursor-blink mt-1" />
       </div>
     </div>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -118,20 +130,71 @@ function Nav() {
       <div className="h-full flex items-center justify-between px-6 lg:px-8">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-gray-500 to-gray-700 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="20 10.25 80 103.75" className="w-5 h-5">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="20 10.25 80 103.75"
+              className="w-5 h-5"
+            >
               <defs>
                 <mask id="m">
-                  <rect width="80" height="56" x="20" y="58" fill="#fff" rx="12" />
-                  <text x="60" y="80" fontFamily="'SF Mono','Menlo','Monaco','Courier New',monospace" fontSize="17" fontWeight="700" textAnchor="middle">$ENV</text>
+                  <rect
+                    width="80"
+                    height="56"
+                    x="20"
+                    y="58"
+                    fill="#fff"
+                    rx="12"
+                  />
+                  <text
+                    x="60"
+                    y="80"
+                    fontFamily="'SF Mono','Menlo','Monaco','Courier New',monospace"
+                    fontSize="17"
+                    fontWeight="700"
+                    textAnchor="middle"
+                  >
+                    $ENV
+                  </text>
                   <path stroke="#000" strokeWidth="1.2" d="M32 88h56" />
-                  <text x="60" y="103" fontFamily="'SF Mono','Menlo','Monaco','Courier New',monospace" fontSize="11" letterSpacing="3" textAnchor="middle">&#x25CF;&#x25CF;&#x25CF;</text>
+                  <text
+                    x="60"
+                    y="103"
+                    fontFamily="'SF Mono','Menlo','Monaco','Courier New',monospace"
+                    fontSize="11"
+                    letterSpacing="3"
+                    textAnchor="middle"
+                  >
+                    &#x25CF;&#x25CF;&#x25CF;
+                  </text>
                 </mask>
               </defs>
-              <path fill="none" stroke="#FFF" strokeLinecap="round" strokeWidth="7.5" d="M34 62V40a26 26 0 0 1 52 0v22" />
-              <rect width="80" height="56" x="20" y="58" fill="#FFF" mask="url(#m)" rx="12" />
+              <path
+                fill="none"
+                stroke="#FFF"
+                strokeLinecap="round"
+                strokeWidth="7.5"
+                d="M34 62V40a26 26 0 0 1 52 0v22"
+              />
+              <rect
+                width="80"
+                height="56"
+                x="20"
+                y="58"
+                fill="#FFF"
+                mask="url(#m)"
+                rx="12"
+              />
             </svg>
           </div>
-          <span className="text-base font-bold tracking-tight" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif' }}>dotlock</span>
+          <span
+            className="text-base font-bold tracking-tight"
+            style={{
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif',
+            }}
+          >
+            dotlock
+          </span>
         </div>
 
         <div className="flex items-center gap-6">
@@ -156,7 +219,7 @@ function Nav() {
         </div>
       </div>
     </nav>
-  )
+  );
 }
 
 function Hero() {
@@ -187,10 +250,14 @@ function Hero() {
               as-is&nbsp;&mdash; dotlock just makes sure you never lose them.
             </p>
             <p className="text-base text-deep-gray mt-4 flex items-start gap-2">
-              <img src="/bun-logo.svg" className="w-5 h-5 mt-0.5 shrink-0" alt="Bun" />
+              <img
+                src="/bun-logo.svg"
+                className="w-5 h-5 mt-0.5 shrink-0"
+                alt="Bun"
+              />
               <span>
-                Tip: use{' '}
-                <span className="font-mono font-bold text-jet">bun</span>{' '}
+                Tip: use{" "}
+                <span className="font-mono font-bold text-jet">bun</span>{" "}
                 instead of npm. It skips postinstall scripts by default, so a
                 compromised package can't exfiltrate your .env files off disk.
               </span>
@@ -207,7 +274,7 @@ function Hero() {
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 function Screenshots() {
@@ -243,7 +310,7 @@ function Screenshots() {
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 function System() {
@@ -281,7 +348,7 @@ function System() {
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 function WhyDifferent() {
@@ -313,7 +380,7 @@ function WhyDifferent() {
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 function Verify() {
@@ -346,11 +413,10 @@ function Verify() {
               wanted to phone home, the OS would block it.
             </p>
           </div>
-
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 function Access() {
@@ -375,7 +441,7 @@ function Access() {
           </div>
           <div className="mt-12 flex justify-start lg:justify-end">
             <a
-              href="#"
+              href="#access"
               className="bg-jet text-cream px-10 py-5 text-sm font-bold uppercase tracking-wider hover:bg-cobalt transition-colors duration-300 ease-linear inline-block"
             >
               DOWNLOAD FOR MACOS
@@ -384,7 +450,7 @@ function Access() {
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 function Footer() {
@@ -399,7 +465,7 @@ function Footer() {
         </span>
       </div>
     </footer>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -418,5 +484,5 @@ export default function App() {
       <Access />
       <Footer />
     </div>
-  )
+  );
 }
