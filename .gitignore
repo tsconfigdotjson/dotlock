@@ -5,3 +5,4 @@ artifacts/
 .electrobun/
 *.tsbuildinfo
 .DS_Store
+web/api/.env
