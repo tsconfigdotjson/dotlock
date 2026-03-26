@@ -12,7 +12,7 @@
     </mask>
   </defs>
   <!-- Shackle -->
-  <path d="M34 62 V40 A26 26 0 0 1 86 40 V62" fill="none" stroke="#FFFFFF" stroke-width="7.5" stroke-linecap="round"/>
+  <path d="M34 62 V40 A26 26 0 0 1 86 40 V62" fill="none" stroke="#000000" stroke-width="7.5" stroke-linecap="round"/>
   <!-- Body with cutouts -->
-  <rect x="20" y="58" width="80" height="56" rx="12" fill="#FFFFFF" mask="url(#m)"/>
+  <rect x="20" y="58" width="80" height="56" rx="12" fill="#000000" mask="url(#m)"/>
 </svg>
