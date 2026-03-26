@@ -33,17 +33,18 @@ jobs:
 
       - name: Write Apple API key file
         run: |
-          mkdir -p ~/.appstoreconnect
-          echo "${{ secrets.ELECTROBUN_APPLEAPIKEYCONTENTS }}" > ~/.appstoreconnect/AuthKey.p8
+          mkdir -p "$HOME/.appstoreconnect"
+          echo "${{ secrets.ELECTROBUN_APPLEAPIKEYCONTENTS }}" > "$HOME/.appstoreconnect/AuthKey.p8"
 
       - name: Build stable release
         env:
           ELECTROBUN_DEVELOPER_ID: ${{ secrets.ELECTROBUN_DEVELOPER_ID }}
           ELECTROBUN_TEAMID: ${{ secrets.ELECTROBUN_TEAMID }}
-          ELECTROBUN_APPLEAPIKEYPATH: ~/.appstoreconnect/AuthKey.p8
           ELECTROBUN_APPLEAPIKEY: ${{ secrets.ELECTROBUN_APPLEAPIKEY }}
           ELECTROBUN_APPLEAPIISSUER: ${{ secrets.ELECTROBUN_APPLEAPIISSUER }}
-        run: bun run build:stable
+        run: |
+          export ELECTROBUN_APPLEAPIKEYPATH="$HOME/.appstoreconnect/AuthKey.p8"
+          bun run build:stable
 
       - name: Upload to R2
         env:
