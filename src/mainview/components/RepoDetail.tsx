@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import { driftCount, useRepos } from "../App";
@@ -13,6 +13,8 @@ import {
   FileIcon,
   FileWarningIcon,
   PlusIcon,
+  TrashIcon,
+  XIcon,
 } from "./icons";
 import { KeyModal, KeyRow } from "./KeyComponents";
 
@@ -278,17 +280,145 @@ function EnvFileSection({
 }
 
 // ---------------------------------------------------------------------------
+// Delete repo confirmation modal
+// ---------------------------------------------------------------------------
+
+function DeleteRepoModal({
+  repoName,
+  onConfirm,
+  onClose,
+}: {
+  repoName: string;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  const [typed, setTyped] = useState("");
+  const matches = typed === repoName;
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleEsc);
+    return () => document.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+      {/* Backdrop */}
+      <div
+        role="button"
+        tabIndex={0}
+        className="absolute inset-0 bg-black/25 dark:bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            onClose();
+          }
+        }}
+      />
+
+      {/* Sheet */}
+      <div className="relative w-full max-w-sm bg-white dark:bg-[#2a2a2a] rounded-xl shadow-2xl dark:shadow-black/40 border border-gray-200/60 dark:border-white/[0.08] overflow-hidden">
+        {/* Header */}
+        <div className="relative px-6 pt-6 pb-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-4 right-4 p-1.5 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+          >
+            <XIcon size={18} />
+          </button>
+
+          <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center mb-4">
+            <TrashIcon size={20} className="text-red-500 dark:text-red-400" />
+          </div>
+
+          <h2 className="text-base font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+            Remove project
+          </h2>
+          <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
+            This will remove{" "}
+            <span className="font-semibold text-gray-700 dark:text-gray-200">
+              {repoName}
+            </span>{" "}
+            and all its tracked keys from the vault. Files on disk are not
+            affected.
+          </p>
+        </div>
+
+        {/* Confirmation input */}
+        <div className="px-6 pb-4">
+          <label className="block text-[12px] font-medium text-gray-500 dark:text-gray-400 mb-2">
+            Type{" "}
+            <span className="font-mono font-semibold text-gray-700 dark:text-gray-200">
+              {repoName}
+            </span>{" "}
+            to confirm
+          </label>
+          <input
+            type="text"
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && matches) {
+                onConfirm();
+              }
+            }}
+            spellCheck={false}
+            autoComplete="off"
+            className="w-full px-3 py-2 rounded-lg text-[13px] font-mono bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400/30 transition-colors"
+          />
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-white/[0.06] bg-gray-50/50 dark:bg-white/[0.02]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg text-[13px] font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!matches}
+            className="px-4 py-2 rounded-lg text-[13px] font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors shadow-sm disabled:opacity-40"
+          >
+            Remove project
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Repo detail page
 // ---------------------------------------------------------------------------
 
 export function RepoDetail() {
   const { name } = useParams<{ name: string }>();
   const navigate = useNavigate();
-  const { repos, updateRepo } = useRepos();
+  const { repos, updateRepo, deleteRepo } = useRepos();
   const repo = repos.find((r) => r.name === name);
+  const [showDelete, setShowDelete] = useState(false);
 
   const handleResolved = (updated: Repo) => {
     updateRepo(updated);
+  };
+
+  const handleDelete = async () => {
+    if (!name) {
+      return;
+    }
+    const ok = await deleteRepo(name);
+    if (ok) {
+      navigate("/");
+    }
   };
 
   if (!repo) {
@@ -343,6 +473,15 @@ export function RepoDetail() {
             </p>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowDelete(true)}
+          className="p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+          style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+          title="Remove project"
+        >
+          <TrashIcon size={16} />
+        </button>
       </header>
 
       {/* Drift banner */}
@@ -363,6 +502,17 @@ export function RepoDetail() {
           ))}
         </div>
       </div>
+
+      {showDelete &&
+        name &&
+        createPortal(
+          <DeleteRepoModal
+            repoName={name}
+            onConfirm={handleDelete}
+            onClose={() => setShowDelete(false)}
+          />,
+          document.body,
+        )}
     </>
   );
 }

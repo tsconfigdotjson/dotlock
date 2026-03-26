@@ -17,7 +17,7 @@ const IGNORE_DIRS = new Set([
   ".electrobun",
 ]);
 
-function isEnvFilename(name: string): boolean {
+export function isEnvFilename(name: string): boolean {
   return name === ".env" || name.startsWith(".env.");
 }
 

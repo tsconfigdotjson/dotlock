@@ -46,6 +46,7 @@ type RepoContextType = {
   addRepo: () => Promise<void>;
   addingRepo: boolean;
   updateRepo: (repo: Repo) => void;
+  deleteRepo: (name: string) => Promise<boolean>;
 };
 
 const RepoContext = createContext<RepoContextType>({
@@ -54,6 +55,7 @@ const RepoContext = createContext<RepoContextType>({
   addRepo: async () => {},
   addingRepo: false,
   updateRepo: () => {},
+  deleteRepo: async () => false,
 });
 
 export function useRepos() {
@@ -137,6 +139,15 @@ function UnlockedApp({
     setRepos((prev) => prev.map((r) => (r.name === repo.name ? repo : r)));
   }, []);
 
+  /** Remove a repo from the vault and local state. */
+  const deleteRepo = useCallback(async (name: string): Promise<boolean> => {
+    const ok = await rpc.removeRepo(name);
+    if (ok) {
+      setRepos((prev) => prev.filter((r) => r.name !== name));
+    }
+    return ok;
+  }, []);
+
   // Derive providers from actual repo data
   const providers = useMemo(() => {
     const map = new Map<string, number>();
@@ -165,7 +176,7 @@ function UnlockedApp({
 
   return (
     <RepoContext.Provider
-      value={{ repos, loading, addRepo, addingRepo, updateRepo }}
+      value={{ repos, loading, addRepo, addingRepo, updateRepo, deleteRepo }}
     >
       <div className="h-screen flex border-t border-gray-200/60 dark:border-transparent bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100">
         {/* Sidebar */}

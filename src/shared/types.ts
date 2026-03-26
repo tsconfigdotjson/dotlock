@@ -158,6 +158,9 @@ export type DotlockRPC = {
         response: Repo | null;
       };
 
+      // Shell
+      openExternal: { params: { url: string }; response: boolean };
+
       // License
       activateLicense: {
         params: { key: string };

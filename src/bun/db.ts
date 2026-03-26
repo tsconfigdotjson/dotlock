@@ -71,6 +71,18 @@ export class InMemoryDB {
     }
   }
 
+  /** Add a new env file to an existing repo. No-op if repo not found or file already exists. */
+  addEnvFile(repoName: string, envFile: EnvFile): void {
+    const repo = this.repos.get(repoName);
+    if (!repo) {
+      return;
+    }
+    if (repo.envFiles.some((f) => f.absolutePath === envFile.absolutePath)) {
+      return;
+    }
+    repo.envFiles.push(envFile);
+  }
+
   /** Get all absolute paths for a repo's env files. */
   getWatchPaths(repoName: string): string[] {
     const repo = this.repos.get(repoName);

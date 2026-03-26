@@ -1,4 +1,5 @@
-import { basename } from "node:path";
+import { readFile } from "node:fs/promises";
+import { basename, dirname, relative } from "node:path";
 import {
   ApplicationMenu,
   BrowserView,
@@ -27,7 +28,7 @@ import {
   getRecentVaults,
   removeRecentVault,
 } from "./recentVaults";
-import { scanFolder } from "./scanner";
+import { parseEnvFile, scanFolder } from "./scanner";
 import { VaultManager } from "./vault";
 import { fileWatcher } from "./watcher";
 
@@ -252,6 +253,16 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
       addKey: async ({ repoName, absolutePath, keyName, value, provider }) =>
         addKeyOp(vault, repoName, absolutePath, keyName, value, provider),
 
+      // ── Shell ──────────────────────────────────────────────────────
+      openExternal: async ({ url }) => {
+        try {
+          Bun.spawn(["open", url]);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+
       // ── License ─────────────────────────────────────────────────────
       activateLicense: async ({ key }) => activateLicense(key),
       getLicenseStatus: async () => getLicenseStatus(),
@@ -263,6 +274,43 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
 // Push sync status changes to the webview
 fileWatcher.setOnChange((repoName) => {
   rpc.send.syncChanged({ repoName });
+});
+
+// Auto-discover new .env files appearing in watched repo directories
+fileWatcher.setOnNewEnvFile(async (repoName, absolutePath) => {
+  if (vault.getState() !== "unlocked") {
+    return false;
+  }
+  const db = vault.getDB();
+  const repo = db.get(repoName);
+  if (!repo) {
+    return false;
+  }
+
+  try {
+    const content = await readFile(absolutePath, "utf-8");
+    const keys = parseEnvFile(content);
+    if (keys.length === 0) {
+      return false;
+    }
+
+    const relDir = relative(repo.path, dirname(absolutePath));
+    const name = basename(absolutePath);
+    const filename = relDir ? `${name} (${relDir})` : name;
+
+    db.addEnvFile(repoName, {
+      filename,
+      absolutePath,
+      rawContent: content,
+      keys,
+      syncStatus: "synced",
+    });
+
+    await vault.save();
+    return true;
+  } catch {
+    return false;
+  }
 });
 
 ApplicationMenu.setApplicationMenu([

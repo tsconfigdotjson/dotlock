@@ -311,3 +311,50 @@ describe("toJSON / loadFromJSON", () => {
     expect(key?.lastRotated).toBe("2025-06-01");
   });
 });
+
+// ---------------------------------------------------------------------------
+// addEnvFile
+// ---------------------------------------------------------------------------
+
+describe("addEnvFile", () => {
+  test("adds a new env file to an existing repo", () => {
+    const db = new InMemoryDB();
+    db.add(makeRepo());
+
+    db.addEnvFile(
+      "my-project",
+      makeEnvFile({
+        filename: ".env.local",
+        absolutePath: "/project/.env.local",
+        rawContent: "LOCAL=true\n",
+        keys: [{ name: "LOCAL", value: "true" }],
+      }),
+    );
+
+    const repo = db.get("my-project");
+    expect(repo?.envFiles.length).toBe(2);
+    expect(repo?.envFiles[1].filename).toBe(".env.local");
+  });
+
+  test("no-op for unknown repo", () => {
+    const db = new InMemoryDB();
+    db.addEnvFile("nonexistent", makeEnvFile());
+    expect(db.get("nonexistent")).toBeNull();
+  });
+
+  test("no-op for duplicate absolutePath", () => {
+    const db = new InMemoryDB();
+    db.add(makeRepo());
+
+    // Try adding a file with the same absolutePath as the existing one
+    db.addEnvFile(
+      "my-project",
+      makeEnvFile({ absolutePath: "/project/.env", rawContent: "DUPE=yes\n" }),
+    );
+
+    const repo = db.get("my-project");
+    expect(repo?.envFiles.length).toBe(1);
+    // Original content unchanged
+    expect(repo?.envFiles[0].rawContent).toBe("KEY=val\n");
+  });
+});
