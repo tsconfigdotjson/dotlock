@@ -61,7 +61,7 @@ const reasons = [
     index: "004",
     title: "NATIVE MACOS",
     description:
-      "Electrobun, not Electron. Real native performance, not a browser in a trenchcoat.",
+      "Your vault password lives in the hardware-backed keychain, locked behind Touch ID and the Secure Enclave. Not the basic keychain most apps settle for.",
   },
 ];
 
