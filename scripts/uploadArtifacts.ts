@@ -30,7 +30,7 @@ const files = await readdir(ARTIFACTS_DIR);
 for (const filename of files) {
   const filePath = join(ARTIFACTS_DIR, filename);
   const file = Bun.file(filePath);
-  await client.file(filename).write(file);
+  await client.file(filename, { "Cache-Control": "public, max-age=0, must-revalidate" }).write(file);
   console.log(`Uploaded: ${filename}`);
 }
 
