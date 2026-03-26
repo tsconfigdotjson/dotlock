@@ -65,7 +65,7 @@ const reasons = [
   },
 ];
 
-const sandboxLines: TerminalLine[] = [
+const verifyLines: TerminalLine[] = [
   {
     id: "s1",
     type: "comment",
@@ -377,19 +377,37 @@ function Verify() {
             check yourself.
           </p>
 
-          {/* Sandbox + network entitlements */}
-          <div className="mb-12">
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-muted block mb-3">
-              SANDBOX &amp; NETWORK ENTITLEMENTS
-            </span>
-            <Terminal lines={sandboxLines} />
-            <p className="text-sm text-deep-gray mt-4 max-w-lg">
-              dotlock runs inside the macOS App Sandbox with zero network
-              entitlements. The sandbox is enforced at the kernel
-              level&nbsp;&mdash; even if the app wanted to phone home, the OS
-              would block it. The only file access it has is what you explicitly
-              grant through file dialogs.
-            </p>
+          {/* Sandbox + network entitlements — coming soon */}
+          <div className="relative mb-12">
+            <div className="opacity-[0.12] select-none pointer-events-none">
+              <span className="text-xs font-bold uppercase tracking-[0.2em] text-muted block mb-3">
+                SANDBOX &amp; NETWORK ENTITLEMENTS
+              </span>
+              <Terminal lines={verifyLines} />
+              <p className="text-sm text-deep-gray mt-4 max-w-lg">
+                dotlock ships with zero network entitlements. The macOS sandbox
+                enforces this at the kernel level&nbsp;&mdash; even if the app
+                wanted to phone home, the OS would block it.
+              </p>
+            </div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="font-mono text-sm font-bold uppercase tracking-[0.25em] text-jet/50 border border-jet/20 px-6 py-3">
+                COMING SOON
+              </span>
+              <p className="text-sm text-deep-gray/70 mt-4 max-w-sm text-center">
+                macOS App Sandbox requires a{" "}
+                <a
+                  href="https://github.com/oven-sh/bun/pull/27041"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline decoration-dotted underline-offset-2 hover:text-cobalt transition-colors"
+                >
+                  Bun runtime fix
+                </a>{" "}
+                for sandbox-safe process initialization. Once it ships, dotlock
+                gets kernel-level network enforcement for free.
+              </p>
+            </div>
           </div>
         </div>
       </div>
