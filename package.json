@@ -8,6 +8,8 @@
     "dev:hmr": "concurrently \"bun run hmr\" \"bun run start\"",
     "hmr": "vite --port 5173",
     "build:canary": "vite build && electrobun build --env=canary",
+    "build:stable": "vite build && electrobun build --env=stable",
+    "upload": "bun scripts/uploadArtifacts.ts",
     "build:helpers": "./tools/build-helpers.sh",
     "test": "bun test",
     "test:coverage": "bun test --coverage",

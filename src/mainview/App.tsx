@@ -9,7 +9,12 @@ import {
 import { createPortal } from "react-dom";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { Dashboard } from "./components/Dashboard";
-import { FolderIcon, KeyIcon, LockIcon } from "./components/icons";
+import {
+  ArrowDownIcon,
+  FolderIcon,
+  KeyIcon,
+  LockIcon,
+} from "./components/icons";
 import { Logo } from "./components/Logo";
 import { PasswordPrompt } from "./components/PasswordPrompt";
 import { PaywallModal } from "./components/PaywallModal";
@@ -19,7 +24,7 @@ import { SidebarLink } from "./components/SidebarLink";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { VaultPicker } from "./components/VaultPicker";
 import * as rpc from "./rpc";
-import type { Repo, Theme, VaultState } from "./types";
+import type { Repo, Theme, UpdateStatus, VaultState } from "./types";
 import { applyTheme } from "./utils";
 
 const FREE_PROJECT_LIMIT = 2;
@@ -88,7 +93,15 @@ function UnlockedApp({
   const [addingRepo, setAddingRepo] = useState(false);
   const [licensed, setLicensed] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({
+    state: "idle",
+  });
   const location = useLocation();
+
+  // Listen for update status changes from backend
+  useEffect(() => {
+    rpc.onUpdateStatusChanged(setUpdateStatus);
+  }, []);
 
   // Initial load
   useEffect(() => {
@@ -233,6 +246,39 @@ function UnlockedApp({
 
           {/* Footer */}
           <div className="px-3 py-3 border-t border-gray-200/50 dark:border-white/[0.06] space-y-2">
+            {/* Update banner */}
+            {updateStatus.state === "downloading" && (
+              <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-black/[0.03] dark:bg-white/[0.03] text-[11px] text-gray-400 dark:text-gray-500">
+                <ArrowDownIcon size={12} className="animate-pulse" />
+                <span>
+                  Updating
+                  {updateStatus.progress
+                    ? `... ${Math.round(updateStatus.progress)}%`
+                    : "..."}
+                </span>
+              </div>
+            )}
+            {updateStatus.state === "ready" && (
+              <button
+                type="button"
+                onClick={() => rpc.applyUpdate()}
+                className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-medium text-gray-600 dark:text-gray-300 bg-black/[0.03] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors"
+              >
+                <ArrowDownIcon size={12} />
+                <span>Update ready &mdash; Restart</span>
+              </button>
+            )}
+            {updateStatus.state === "available" && (
+              <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-black/[0.03] dark:bg-white/[0.03] text-[11px] text-gray-400 dark:text-gray-500">
+                <ArrowDownIcon size={12} />
+                <span>
+                  Update{" "}
+                  {"version" in updateStatus ? `v${updateStatus.version} ` : ""}
+                  available
+                </span>
+              </div>
+            )}
+
             {/* Lock Vault */}
             <button
               type="button"

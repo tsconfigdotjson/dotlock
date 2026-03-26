@@ -6,7 +6,7 @@ import {
   Updater,
   Utils,
 } from "electrobun/bun";
-import type { DotlockRPC } from "../shared/types";
+import type { DotlockRPC, UpdateStatus } from "../shared/types";
 import {
   deletePassword,
   getAccentColor,
@@ -38,6 +38,63 @@ const vault = new VaultManager();
 
 // Wire the watcher to use the vault's db
 fileWatcher.setGetDB(() => vault.getDB());
+
+// ── Auto-update ──────────────────────────────────────────────────────
+
+let currentUpdateStatus: UpdateStatus = { state: "idle" };
+
+function setUpdateStatus(status: UpdateStatus) {
+  currentUpdateStatus = status;
+  try {
+    rpc.send.updateStatusChanged({ status });
+  } catch {
+    // RPC not ready yet
+  }
+}
+
+async function checkForUpdateOnStartup() {
+  const channel = await Updater.localInfo.channel();
+  if (channel === "dev") {
+    return;
+  }
+
+  setUpdateStatus({ state: "checking" });
+
+  const result = await Updater.checkForUpdate();
+
+  if (result.error) {
+    setUpdateStatus({ state: "error", message: result.error });
+    return;
+  }
+
+  if (!result.updateAvailable) {
+    setUpdateStatus({ state: "no-update", version: result.version });
+    return;
+  }
+
+  setUpdateStatus({ state: "available", version: result.version });
+
+  // Auto-download but do NOT auto-apply
+  setUpdateStatus({ state: "downloading" });
+
+  Updater.onStatusChange((entry) => {
+    if (entry.status === "download-progress" && entry.details?.progress) {
+      setUpdateStatus({
+        state: "downloading",
+        progress: entry.details.progress,
+      });
+    }
+  });
+
+  await Updater.downloadUpdate();
+
+  const info = Updater.updateInfo();
+  if (info?.updateReady) {
+    setUpdateStatus({ state: "ready", version: result.version });
+  } else if (info?.error) {
+    setUpdateStatus({ state: "error", message: info.error });
+  }
+}
 
 // Check if Vite dev server is running for HMR
 async function getMainViewUrl(): Promise<string> {
@@ -255,6 +312,21 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
       // ── License ─────────────────────────────────────────────────────
       activateLicense: async ({ key }) => activateLicense(key),
       getLicenseStatus: async () => getLicenseStatus(),
+
+      // ── Update ─────────────────────────────────────────────────────
+      checkForUpdate: async () => {
+        if (currentUpdateStatus.state === "idle") {
+          checkForUpdateOnStartup();
+        }
+        return currentUpdateStatus;
+      },
+      applyUpdate: async () => {
+        if (currentUpdateStatus.state === "ready") {
+          await Updater.applyUpdate();
+          return true;
+        }
+        return false;
+      },
     },
     messages: {},
   },
@@ -315,3 +387,6 @@ new BrowserWindow({
     y: 200,
   },
 });
+
+// Check for updates after window is created (non-blocking)
+checkForUpdateOnStartup();
