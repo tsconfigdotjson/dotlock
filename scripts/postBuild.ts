@@ -57,6 +57,9 @@ if (existsSync(helperSrc)) {
   const { mkdirSync } = await import("node:fs");
   mkdirSync(helpersPath, { recursive: true });
   await cp(helperSrc, helperDest, { recursive: true });
+  // Strip extended attributes so Electrobun's tar doesn't emit PAX headers
+  // (its zig tar parser can't handle them → TarHeadersTooBig crash).
+  await $`xattr -cr ${helperDest}`.quiet();
   console.log(
     `[postBuild] Bundled keychain helper → ${appDir}/Contents/Helpers/dotlock-keychain.app`,
   );

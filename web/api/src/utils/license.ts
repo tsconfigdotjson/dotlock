@@ -39,6 +39,7 @@ async function importPrivateKey(pem: string): Promise<CryptoKey> {
   const b64 = pem
     .replace(/-----BEGIN PRIVATE KEY-----/, "")
     .replace(/-----END PRIVATE KEY-----/, "")
+    .replace(/\\n/g, "")
     .replace(/\s/g, "");
   const binaryString = atob(b64);
   const der = new Uint8Array(binaryString.length);
