@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import * as rpc from "../rpc";
 import {
+  ExternalLinkIcon,
   HeartIcon,
   InfinityIcon,
   LoaderIcon,
@@ -152,6 +153,15 @@ export function PaywallModal({
               {error}
             </p>
           )}
+          <button
+            type="button"
+            onClick={() => rpc.openExternal("https://dotlock.dev/purchase")}
+            className="mt-2 inline-flex items-center gap-1 text-[12px] font-medium transition-colors hover:underline"
+            style={{ color: "var(--system-accent)" }}
+          >
+            Don&rsquo;t have a key? Get one here
+            <ExternalLinkIcon size={11} />
+          </button>
         </div>
 
         {/* Footer */}

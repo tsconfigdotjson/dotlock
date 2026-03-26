@@ -18,6 +18,27 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// Disable DevTools keyboard shortcuts
+document.addEventListener("keydown", (e) => {
+  // F12
+  if (e.key === "F12") {
+    e.preventDefault();
+  }
+  // Cmd+Option+I (Inspector), Cmd+Option+J (Console), Cmd+Option+C (Element picker)
+  if (e.metaKey && e.altKey && ["i", "j", "c"].includes(e.key.toLowerCase())) {
+    e.preventDefault();
+  }
+  // Cmd+U (View Source)
+  if (e.metaKey && !e.shiftKey && e.key.toLowerCase() === "u") {
+    e.preventDefault();
+  }
+});
+
+// Disable right-click context menu
+document.addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+});
+
 const root = document.getElementById("root");
 if (!root) {
   throw new Error("Root element not found");

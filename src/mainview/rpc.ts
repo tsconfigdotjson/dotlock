@@ -232,6 +232,12 @@ export function addKey(
   );
 }
 
+// ── Shell ────────────────────────────────────────────────────────────
+
+export function openExternal(url: string): Promise<boolean> {
+  return rpcCall((r) => r.request.openExternal({ url }), false);
+}
+
 // ── License ──────────────────────────────────────────────────────────
 
 export function activateLicense(key: string): Promise<ActivationResult> {

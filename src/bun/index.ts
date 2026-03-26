@@ -252,6 +252,16 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
       addKey: async ({ repoName, absolutePath, keyName, value, provider }) =>
         addKeyOp(vault, repoName, absolutePath, keyName, value, provider),
 
+      // ── Shell ──────────────────────────────────────────────────────
+      openExternal: async ({ url }) => {
+        try {
+          Bun.spawn(["open", url]);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+
       // ── License ─────────────────────────────────────────────────────
       activateLicense: async ({ key }) => activateLicense(key),
       getLicenseStatus: async () => getLicenseStatus(),

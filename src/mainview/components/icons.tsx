@@ -30,6 +30,8 @@ export {
   ShieldCheck as ShieldCheckIcon,
   Sparkles as SparklesIcon,
   Sun as SunIcon,
+  ExternalLink as ExternalLinkIcon,
+  Trash2 as TrashIcon,
   X as XIcon,
   Zap as ZapIcon,
 } from "lucide-react";
