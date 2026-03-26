@@ -34,7 +34,7 @@ const LogoSvg: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     </defs>
     <path
       fill="none"
-      stroke="#FFF"
+      stroke="#000"
       strokeLinecap="round"
       strokeWidth="7.5"
       d="M34 62V40a26 26 0 0 1 52 0v22"
@@ -44,7 +44,7 @@ const LogoSvg: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
       height="56"
       x="20"
       y="58"
-      fill="#FFF"
+      fill="#000"
       mask="url(#m)"
       rx="12"
     />
@@ -60,7 +60,7 @@ export function Logo({ size = "lg" }: LogoProps) {
 
   return (
     <div
-      className={`${cls} bg-gradient-to-br from-gray-500 to-gray-700 flex items-center justify-center`}
+      className={`${cls} bg-[#e3e2de] flex items-center justify-center`}
     >
       <LogoSvg className={size === "sm" ? "w-5 h-5" : "w-10 h-10"} />
     </div>
