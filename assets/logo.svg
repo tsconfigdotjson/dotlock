@@ -3,16 +3,12 @@
     <mask id="m">
       <!-- White = visible, black = cut out -->
       <rect x="20" y="58" width="80" height="56" rx="12" fill="white"/>
-      <!-- Cut out $ENV -->
-      <text x="60" y="80" text-anchor="middle" font-family="'SF Mono','Menlo','Monaco','Courier New',monospace" font-size="17" font-weight="700" fill="black">$ENV</text>
-      <!-- Cut out divider -->
-      <line x1="32" y1="88" x2="88" y2="88" stroke="black" stroke-width="1.2"/>
-      <!-- Cut out dots -->
-      <text x="60" y="103" text-anchor="middle" font-family="'SF Mono','Menlo','Monaco','Courier New',monospace" font-size="11" fill="black" letter-spacing="3">●●●</text>
+      <!-- Cut out ENV -->
+      <text x="60" y="98" text-anchor="middle" font-family="'SF Mono','Menlo','Monaco','Courier New',monospace" font-size="33" font-weight="700" fill="black">ENV</text>
     </mask>
   </defs>
   <!-- Shackle -->
-  <path d="M34 62 V40 A26 26 0 0 1 86 40 V62" fill="none" stroke="#FFFFFF" stroke-width="7.5" stroke-linecap="round"/>
+  <path d="M34 62 V40 A26 26 0 0 1 86 40 V62" fill="none" stroke="#000000" stroke-width="7.5" stroke-linecap="round"/>
   <!-- Body with cutouts -->
-  <rect x="20" y="58" width="80" height="56" rx="12" fill="#FFFFFF" mask="url(#m)"/>
+  <rect x="20" y="58" width="80" height="56" rx="12" fill="#000000" mask="url(#m)"/>
 </svg>
