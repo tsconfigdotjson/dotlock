@@ -36,6 +36,11 @@ export async function handleCheckout(c: AppContext) {
       metadata: {
         app_user_id: authResult.user.id,
       },
+      payment_intent_data: {
+        metadata: {
+          app_user_id: authResult.user.id,
+        },
+      },
     });
 
     if (!session.url) {
