@@ -30,8 +30,4 @@ export default {
       bundleCEF: false,
     },
   },
-  release: {
-    baseUrl: "https://releases.dotlock.dev/",
-    generatePatch: true,
-  },
 } satisfies ElectrobunConfig;
