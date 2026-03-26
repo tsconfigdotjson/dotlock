@@ -11,6 +11,7 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
+    allowedHosts: ["dev.dotlock.dev"],
     proxy: {
       "/api": "http://localhost:8787",
     },

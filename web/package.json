@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"vite\" \"cd api && bun run dev\" --names \"vite,api\" --prefix-colors \"cyan,magenta\"",
+    "dev:tunnel": "concurrently \"vite\" \"cd api && bun run dev\" \"cloudflared tunnel --config api/cloudflared.yml run\" --names \"vite,api,tunnel\" --prefix-colors \"cyan,magenta,yellow\"",
     "dev:web": "vite",
+    "push:schema": "bun --env-file=api/.env scripts/push-instant.ts schema",
+    "push:perms": "bun --env-file=api/.env scripts/push-instant.ts perms",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
