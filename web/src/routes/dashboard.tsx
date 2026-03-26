@@ -3,8 +3,6 @@ import { useEffect, useState } from "react";
 import { Logo } from "../components/Logo";
 import { db } from "../lib/db";
 
-const API_URL = import.meta.env.VITE_API_URL;
-
 export const Route = createFileRoute("/dashboard")({
   component: DashboardRoute,
 });
@@ -98,7 +96,7 @@ function PurchasePrompt() {
     setError(null);
 
     try {
-      const res = await fetch(`${API_URL}/api/checkout`, {
+      const res = await fetch("/api/checkout", {
         headers: { Authorization: `Bearer ${user.refresh_token}` },
       });
       const data = await res.json();

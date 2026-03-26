@@ -1,8 +1,8 @@
+import { id } from "@instantdb/admin";
 import type Stripe from "stripe";
 import { type AppContext, requireStripe } from "../context";
 import { getAdminDb } from "../utils/instant-admin";
 import { generateLicenseKey } from "../utils/license";
-import { id } from "@instantdb/admin";
 
 export async function handleStripeWebhook(c: AppContext) {
   const stripeWebhookSecret = c.env.STRIPE_WEBHOOK_SECRET;
