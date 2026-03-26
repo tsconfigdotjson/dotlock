@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Logo } from "../components/Logo";
+import { DOWNLOAD_URL } from "../lib/constants";
 import { db } from "../lib/db";
 
 export const Route = createFileRoute("/dashboard")({
@@ -226,7 +227,7 @@ function LicenseDisplay({ licenseKey }: { licenseKey: string }) {
 
             <div className="flex flex-col sm:flex-row gap-4">
               <a
-                href="#access"
+                href={DOWNLOAD_URL}
                 className="inline-block w-fit bg-cobalt text-cream px-8 py-4 text-sm font-bold uppercase tracking-wider hover:bg-jet transition-colors duration-300 ease-linear"
               >
                 DOWNLOAD DOTLOCK

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Logo } from "../components/Logo";
+import { DOWNLOAD_URL } from "../lib/constants";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -188,7 +189,7 @@ function Nav() {
             VERIFY
           </a>
           <a
-            href="#access"
+            href={DOWNLOAD_URL}
             className="bg-cobalt text-cream px-4 py-2 text-sm font-bold tracking-wider hover:bg-jet transition-colors duration-300 ease-linear"
           >
             DOWNLOAD
@@ -242,7 +243,7 @@ function Hero() {
           </div>
           <div className="flex flex-col gap-4">
             <a
-              href="#access"
+              href={DOWNLOAD_URL}
               className="inline-block w-fit bg-cobalt text-cream px-8 py-4 text-sm font-bold uppercase tracking-wider hover:bg-jet transition-colors duration-300 ease-linear"
             >
               DOWNLOAD FOR MACOS
@@ -543,7 +544,7 @@ function Access() {
           </div>
           <div className="mt-12 flex justify-start lg:justify-end">
             <a
-              href="#access"
+              href={DOWNLOAD_URL}
               className="bg-jet text-cream px-10 py-5 text-sm font-bold uppercase tracking-wider hover:bg-cobalt transition-colors duration-300 ease-linear inline-block"
             >
               DOWNLOAD FOR MACOS
