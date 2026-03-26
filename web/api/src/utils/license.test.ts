@@ -19,7 +19,9 @@ const WRONG_KEY_PAIR = generateKeyPairSync("ed25519", {
 describe("base32Encode", () => {
   test("output contains only Crockford alphabet chars", () => {
     const data = new Uint8Array(256);
-    for (let i = 0; i < 256; i++) data[i] = i;
+    for (let i = 0; i < 256; i++) {
+      data[i] = i;
+    }
     expect(base32Encode(data)).toMatch(/^[0-9A-HJ-NP-TV-Z]*$/);
   });
 
