@@ -10,6 +10,7 @@
     "push:schema": "bun --env-file=api/.env scripts/push-instant.ts schema",
     "push:perms": "bun --env-file=api/.env scripts/push-instant.ts perms",
     "build": "tsc -b && vite build",
+    "deploy": "bun run build && cd api && bun run deploy:production",
     "lint": "eslint .",
     "preview": "vite preview"
   },

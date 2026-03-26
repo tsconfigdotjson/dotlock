@@ -11,6 +11,14 @@ app.use("*", requestContextMiddleware);
 app.get("/api/checkout", handleCheckout);
 app.post("/api/webhooks/stripe", handleStripeWebhook);
 
+app.all("*", async (c) => {
+  const assets = (c.env as Env & { ASSETS: { fetch: typeof fetch } }).ASSETS;
+  if (assets) {
+    return assets.fetch(c.req.raw);
+  }
+  return c.text("Not found", 404);
+});
+
 app.onError((err, c) => {
   if (err instanceof HTTPException) {
     return err.getResponse();
