@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "dotlock-api-dev",
+  "name": "dotlock",
   "main": "src/index.ts",
   "compatibility_date": "2025-11-11"
 }
