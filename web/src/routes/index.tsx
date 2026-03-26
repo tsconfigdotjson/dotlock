@@ -65,25 +65,44 @@ const reasons = [
   },
 ];
 
-const networkLines: TerminalLine[] = [
+const sandboxLines: TerminalLine[] = [
   {
-    id: "n1",
+    id: "s1",
     type: "comment",
-    text: "check if dotlock has any network entitlements",
+    text: "verify the app is sandboxed",
   },
   {
-    id: "n2",
+    id: "s2",
     type: "command",
     text: "codesign -d --entitlements :- /Applications/dotlock.app \\",
   },
-  { id: "n3", type: "output", text: '    | grep -c "network"' },
-  { id: "n4", type: "empty" },
-  { id: "n5", type: "output", text: "0" },
-  { id: "n6", type: "empty" },
+  { id: "s3", type: "output", text: '    | grep "app-sandbox"' },
+  { id: "s4", type: "empty" },
   {
-    id: "n7",
+    id: "s5",
+    type: "output",
+    text: "<key>com.apple.security.app-sandbox</key>",
+  },
+  { id: "s6", type: "output", text: "<true/>" },
+  { id: "s7", type: "empty" },
+  {
+    id: "s8",
     type: "comment",
-    text: "zero. your secrets aren't going anywhere.",
+    text: "now check for network entitlements",
+  },
+  {
+    id: "s9",
+    type: "command",
+    text: "codesign -d --entitlements :- /Applications/dotlock.app \\",
+  },
+  { id: "s10", type: "output", text: '    | grep -c "network"' },
+  { id: "s11", type: "empty" },
+  { id: "s12", type: "output", text: "0" },
+  { id: "s13", type: "empty" },
+  {
+    id: "s14",
+    type: "comment",
+    text: "sandboxed. zero network. your secrets aren't going anywhere.",
   },
 ];
 
@@ -358,16 +377,18 @@ function Verify() {
             check yourself.
           </p>
 
-          {/* Network entitlements */}
+          {/* Sandbox + network entitlements */}
           <div className="mb-12">
             <span className="text-xs font-bold uppercase tracking-[0.2em] text-muted block mb-3">
-              NETWORK ENTITLEMENTS
+              SANDBOX &amp; NETWORK ENTITLEMENTS
             </span>
-            <Terminal lines={networkLines} />
+            <Terminal lines={sandboxLines} />
             <p className="text-sm text-deep-gray mt-4 max-w-lg">
-              dotlock ships with zero network entitlements. The macOS sandbox
-              enforces this at the kernel level&nbsp;&mdash; even if the app
-              wanted to phone home, the OS would block it.
+              dotlock runs inside the macOS App Sandbox with zero network
+              entitlements. The sandbox is enforced at the kernel
+              level&nbsp;&mdash; even if the app wanted to phone home, the OS
+              would block it. The only file access it has is what you explicitly
+              grant through file dialogs.
             </p>
           </div>
         </div>

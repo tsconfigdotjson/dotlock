@@ -22,6 +22,11 @@ export default {
       bundleCEF: false,
       codesign: true,
       notarize: true,
+      entitlements: {
+        "com.apple.security.app-sandbox": true,
+        "com.apple.security.files.user-selected.read-write":
+          "dotlock needs access to your vault file and project folders",
+      },
     },
     linux: {
       bundleCEF: false,
@@ -29,9 +34,5 @@ export default {
     win: {
       bundleCEF: false,
     },
-  },
-  release: {
-    baseUrl: "https://releases.dotlock.dev/",
-    generatePatch: true,
   },
 } satisfies ElectrobunConfig;

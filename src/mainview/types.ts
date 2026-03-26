@@ -5,7 +5,6 @@ export type {
   LicenseInfo,
   Repo,
   SyncStatus,
-  UpdateStatus,
   VaultMeta,
   VaultState,
 } from "../shared/types";
