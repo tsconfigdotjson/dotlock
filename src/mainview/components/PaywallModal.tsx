@@ -104,7 +104,7 @@ export function PaywallModal({
           </h2>
           <p className="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed">
             You're on the free tier, which includes up to 2 projects per vault.
-            A license unlocks the full power of dotlock — one-time purchase,
+            A license unlocks the full power of dotlock - one-time purchase,
             yours forever.
           </p>
         </div>
