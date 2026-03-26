@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Logo } from "../components/Logo";
 
 export const Route = createFileRoute("/")({
@@ -253,39 +254,144 @@ function Hero() {
   );
 }
 
-function Screenshots() {
+function ScreenshotCard({
+  src,
+  alt,
+  label,
+  onOpen,
+}: {
+  src: string;
+  alt: string;
+  label: string;
+  onOpen: (src: string, label: string) => void;
+}) {
   return (
-    <section className="border-t border-divider">
-      <div className="grid grid-cols-1 lg:grid-cols-12">
-        <div className="lg:col-span-3 lg:border-r border-divider px-6 py-8 lg:px-8 lg:py-16">
-          <SidebarLabel>THE APP</SidebarLabel>
-        </div>
-        <div className="lg:col-span-9 px-6 py-8 lg:px-12 lg:py-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-[0.2em] text-muted block mb-3">
-                DASHBOARD
-              </span>
-              <img
+    <div>
+      <span className="text-xs font-bold uppercase tracking-[0.2em] text-muted block mb-3">
+        {label}
+      </span>
+      <button
+        type="button"
+        onClick={() => onOpen(src, label)}
+        className="w-full text-left cursor-pointer group"
+      >
+        <img
+          src={src}
+          className="w-full border border-divider group-hover:border-jet/40 transition-[border-color] duration-300 ease-linear"
+          alt={alt}
+        />
+      </button>
+    </div>
+  );
+}
+
+function Lightbox({
+  src,
+  label,
+  onClose,
+}: {
+  src: string;
+  label: string;
+  onClose: () => void;
+}) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center cursor-pointer"
+      onClick={onClose}
+      style={{
+        backgroundColor: visible ? "rgba(20, 20, 20, 0.92)" : "transparent",
+        transition: "background-color 350ms cubic-bezier(0.22, 1, 0.36, 1)",
+      }}
+    >
+      <span
+        className="font-mono text-xs font-bold uppercase tracking-[0.2em] text-cream/50 mb-4"
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(8px)",
+          transition:
+            "opacity 400ms cubic-bezier(0.22, 1, 0.36, 1) 150ms, transform 400ms cubic-bezier(0.22, 1, 0.36, 1) 150ms",
+        }}
+      >
+        {label}
+      </span>
+      <img
+        src={src}
+        alt={label}
+        className="border border-cream/10"
+        style={{
+          maxWidth: "min(90vw, 1100px)",
+          maxHeight: "80vh",
+          opacity: visible ? 1 : 0,
+          transform: visible ? "scale(1)" : "scale(0.92)",
+          transition:
+            "opacity 350ms cubic-bezier(0.22, 1, 0.36, 1), transform 350ms cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
+      />
+      <span
+        className="font-mono text-[11px] text-cream/30 mt-4"
+        style={{
+          opacity: visible ? 1 : 0,
+          transition: "opacity 400ms cubic-bezier(0.22, 1, 0.36, 1) 200ms",
+        }}
+      >
+        ESC / CLICK TO CLOSE
+      </span>
+    </div>
+  );
+}
+
+function Screenshots() {
+  const [lightbox, setLightbox] = useState<{
+    src: string;
+    label: string;
+  } | null>(null);
+
+  return (
+    <>
+      <section className="border-t border-divider">
+        <div className="grid grid-cols-1 lg:grid-cols-12">
+          <div className="lg:col-span-3 lg:border-r border-divider px-6 py-8 lg:px-8 lg:py-16">
+            <SidebarLabel>THE APP</SidebarLabel>
+          </div>
+          <div className="lg:col-span-9 px-6 py-8 lg:px-12 lg:py-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ScreenshotCard
                 src="/screenshot-dashboard.png"
-                className="w-full border border-divider"
                 alt="dotlock dashboard showing project overview"
+                label="DASHBOARD"
+                onOpen={(src, label) => setLightbox({ src, label })}
               />
-            </div>
-            <div>
-              <span className="text-xs font-bold uppercase tracking-[0.2em] text-muted block mb-3">
-                MANAGE KEYS
-              </span>
-              <img
+              <ScreenshotCard
                 src="/screenshot-detail.png"
-                className="w-full border border-divider"
                 alt="dotlock project detail showing key management"
+                label="MANAGE KEYS"
+                onOpen={(src, label) => setLightbox({ src, label })}
               />
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+      {lightbox && (
+        <Lightbox
+          src={lightbox.src}
+          label={lightbox.label}
+          onClose={() => setLightbox(null)}
+        />
+      )}
+    </>
   );
 }
 
