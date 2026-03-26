@@ -24,13 +24,13 @@ const features = [
     index: "02",
     title: "ENCRYPTED BACKUP",
     description:
-      "Every .env file backed up in a single AES-256-GCM encrypted vault with scrypt key derivation. Your files on disk stay as-is — dotlock just makes sure you never lose them.",
+      "Every .env file backed up in a single AES-256-GCM encrypted vault with scrypt key derivation. Your files on disk stay as-is - dotlock just makes sure you never lose them.",
   },
   {
     index: "03",
     title: "DRIFT DETECTION",
     description:
-      "Real-time file watching via native FSEvents. If someone — or something — changes or deletes your .env files, you'll know instantly and can restore from your vault.",
+      "Real-time file watching via native FSEvents. If someone - or something - changes or deletes your .env files, you'll know instantly and can restore from your vault.",
   },
   {
     index: "04",
@@ -51,7 +51,7 @@ const reasons = [
     index: "002",
     title: "YOUR CLOUD, YOUR CHOICE",
     description:
-      "Your vault is just a file. Keep it local, or sync it with iCloud Drive, Google Drive, Dropbox — whatever you already use. No proprietary cloud required.",
+      "Your vault is just a file. Keep it local, or sync it with iCloud Drive, Google Drive, Dropbox - whatever you already use. No proprietary cloud required.",
   },
   {
     index: "003",
@@ -484,7 +484,7 @@ function Verify() {
             check yourself.
           </p>
 
-          {/* Sandbox + network entitlements — coming soon */}
+          {/* Sandbox + network entitlements - coming soon */}
           <div className="relative mb-12">
             <div className="opacity-[0.12] select-none pointer-events-none">
               <span className="text-xs font-bold uppercase tracking-[0.2em] text-muted block mb-3">
