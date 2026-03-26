@@ -4,7 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"vite\" \"cd api && bun run dev\" --names \"vite,api\" --prefix-colors \"cyan,magenta\"",
+    "dev:tunnel": "concurrently \"vite\" \"cd api && bun run dev\" \"cloudflared tunnel --config api/cloudflared.yml run\" --names \"vite,api,tunnel\" --prefix-colors \"cyan,magenta,yellow\"",
+    "dev:web": "vite",
+    "push:schema": "bun --env-file=api/.env scripts/push-instant.ts schema",
+    "push:perms": "bun --env-file=api/.env scripts/push-instant.ts perms",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -25,6 +29,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",

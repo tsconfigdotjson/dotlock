@@ -1,0 +1,20 @@
+{
+  "name": "api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "deploy:production": "wrangler deploy --config wrangler.production.jsonc",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@instantdb/admin": "^0.22.171",
+    "@instantdb/core": "^0.22.171",
+    "hono": "^4.10.5",
+    "stripe": "^20.1.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "wrangler": "^4.48.0"
+  }
+}

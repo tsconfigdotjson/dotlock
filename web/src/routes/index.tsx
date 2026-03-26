@@ -14,18 +14,24 @@ type TerminalLine = {
 const features = [
   {
     index: "01",
-    title: "ENCRYPTED BACKUP",
+    title: "LIVE EDITOR",
     description:
-      "Every .env file across every project, backed up in a single encrypted .dotlock vault. Your files on disk stay as-is — dotlock just makes sure you never lose them.",
+      "Add, edit, and delete keys across every project from one place. No more hunting through directories or opening files in a text editor.",
   },
   {
     index: "02",
+    title: "ENCRYPTED BACKUP",
+    description:
+      "Every .env file backed up in a single AES-256-GCM encrypted vault with scrypt key derivation. Your files on disk stay as-is — dotlock just makes sure you never lose them.",
+  },
+  {
+    index: "03",
     title: "DRIFT DETECTION",
     description:
       "Real-time file watching via native FSEvents. If someone — or something — changes or deletes your .env files, you'll know instantly and can restore from your vault.",
   },
   {
-    index: "03",
+    index: "04",
     title: "BIOMETRIC UNLOCK",
     description:
       "Vault password stored in the macOS Keychain, guarded by Touch ID. No cloud auth. No OAuth dance. Just press your thumb on the thing.",
@@ -196,9 +202,9 @@ function Hero() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
           <div className="max-w-[400px]">
             <p className="text-lg text-deep-gray leading-relaxed">
-              dotlock backs up every .env file across all your projects into a
-              single encrypted vault on your Mac. Your files on disk stay
-              as-is&nbsp;&mdash; dotlock just makes sure you never lose them.
+              dotlock manages and backs up every .env file across all your
+              projects. Edit keys, track changes, and restore files&nbsp;&mdash;
+              all from a single encrypted vault on your Mac.
             </p>
             <p className="text-base text-deep-gray mt-4 flex items-start gap-2">
               <img
@@ -249,12 +255,12 @@ function Screenshots() {
             </div>
             <div>
               <span className="text-xs font-bold uppercase tracking-[0.2em] text-muted block mb-3">
-                PROJECT DETAIL
+                MANAGE KEYS
               </span>
               <img
                 src="/screenshot-detail.png"
                 className="w-full border border-divider"
-                alt="dotlock project detail showing encrypted keys"
+                alt="dotlock project detail showing key management"
               />
             </div>
           </div>
@@ -273,14 +279,14 @@ function System() {
         </div>
         <div className="lg:col-span-9 px-6 py-12 lg:px-12 lg:py-16">
           <h2 className="text-[clamp(3rem,6vw,7rem)] font-bold leading-[0.9] tracking-[-0.03em] mb-12">
-            BACKED UP.
+            MANAGED.
             <br />
             WATCHED.
             <br />
-            RESTORED.
+            BACKED UP.
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 border-t border-l border-divider">
+          <div className="grid grid-cols-1 md:grid-cols-2 border-t border-l border-divider">
             {features.map((f) => (
               <div
                 key={f.index}
@@ -412,7 +418,7 @@ function Footer() {
           &copy; {new Date().getFullYear()} dotlock
         </span>
         <span className="text-sm text-muted">
-          Your secrets, backed up and accounted for
+          Manage, protect, and never lose your secrets
         </span>
       </div>
     </footer>
