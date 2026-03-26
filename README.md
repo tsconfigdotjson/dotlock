@@ -1,3 +1,5 @@
+<img src="assets/logo.png" alt="dotlock" width="128" />
+
 # dotlock
 
 A macOS desktop app for managing `.env` files across your projects. dotlock encrypts your environment variables into a single vault file, watches for file changes on disk, and optionally protects your vault password with Touch ID.
