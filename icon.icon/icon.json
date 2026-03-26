@@ -7,8 +7,8 @@
       "layers" : [
         {
           "glass" : false,
-          "image-name" : "logo 2.png",
-          "name" : "logo 2",
+          "image-name" : "logo.png",
+          "name" : "logo",
           "position" : {
             "scale" : 0.85,
             "translation-in-points" : [
