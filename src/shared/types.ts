@@ -53,6 +53,17 @@ export type ActivationResult = {
   error?: string;
 };
 
+// ── Update types ────────────────────────────────────────────────────
+
+export type UpdateStatus =
+  | { state: "idle" }
+  | { state: "checking" }
+  | { state: "no-update"; version: string }
+  | { state: "available"; version: string }
+  | { state: "downloading"; progress?: number }
+  | { state: "ready"; version: string }
+  | { state: "error"; message: string };
+
 // ── RPC schema ──────────────────────────────────────────────────────
 
 export type DotlockRPC = {
@@ -167,12 +178,23 @@ export type DotlockRPC = {
         params: Record<string, never>;
         response: LicenseInfo;
       };
+
+      // Update
+      checkForUpdate: {
+        params: Record<string, never>;
+        response: UpdateStatus;
+      };
+      applyUpdate: {
+        params: Record<string, never>;
+        response: boolean;
+      };
     };
   }>;
   webview: RPCSchema<{
     messages: {
       syncChanged: { repoName: string };
       vaultStateChanged: { state: VaultState };
+      updateStatusChanged: { status: UpdateStatus };
     };
   }>;
 };
