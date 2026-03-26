@@ -7,7 +7,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { readFile } from "node:fs/promises";
+import { basename, dirname, join, relative } from "node:path";
 import type { InMemoryDB } from "../db";
 import {
   addKey,
@@ -23,7 +24,7 @@ import {
   removeRecentVault,
   setDataDir,
 } from "../recentVaults";
-import { scanFolder } from "../scanner";
+import { parseEnvFile, scanFolder } from "../scanner";
 import { VaultManager } from "../vault";
 import { fileWatcher } from "../watcher";
 
@@ -69,6 +70,7 @@ afterEach(() => {
   fileWatcher.unwatchAll();
   fileWatcher.setGetDB(null as unknown as () => InMemoryDB);
   fileWatcher.setOnChange(null as unknown as (repoName: string) => void);
+  fileWatcher.setOnNewEnvFile(null);
   setDataDir(null);
   if (existsSync(TEST_DIR)) {
     rmSync(TEST_DIR, { recursive: true, force: true });
@@ -522,5 +524,169 @@ describe("full end-to-end lifecycle", () => {
     const restored = readFileSync(envPath, "utf-8");
     expect(restored).toContain("DB_PASS=new-secret");
     expect(restored).not.toContain("hacked");
+  });
+});
+
+// ── new env file auto-discovery ──────────────────────────────────────
+
+/** Mirrors the onNewEnvFile handler from index.ts */
+async function newEnvFileHandler(
+  v: VaultManager,
+  repoName: string,
+  absolutePath: string,
+): Promise<boolean> {
+  if (v.getState() !== "unlocked") {
+    return false;
+  }
+  const db = v.getDB();
+  const repo = db.get(repoName);
+  if (!repo) {
+    return false;
+  }
+
+  try {
+    const content = await readFile(absolutePath, "utf-8");
+    const keys = parseEnvFile(content);
+    if (keys.length === 0) {
+      return false;
+    }
+
+    const relDir = relative(repo.path, dirname(absolutePath));
+    const name = basename(absolutePath);
+    const filename = relDir ? `${name} (${relDir})` : name;
+
+    db.addEnvFile(repoName, {
+      filename,
+      absolutePath,
+      rawContent: content,
+      keys,
+      syncStatus: "synced",
+    });
+
+    await v.save();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+describe("new env file auto-discovery in watched repo", () => {
+  test("new .env file is auto-discovered and persisted in vault", async () => {
+    const projectDir = nextProject();
+    const envPath = join(projectDir, ".env");
+    writeFileSync(envPath, "API_KEY=secret\n");
+
+    const envFiles = await scanFolder(projectDir);
+    const repoName = basename(projectDir);
+    vault.getDB().add({ name: repoName, path: projectDir, envFiles });
+    await vault.save();
+
+    fileWatcher.setOnNewEnvFile((name, path) =>
+      newEnvFileHandler(vault, name, path),
+    );
+
+    const notifications: string[] = [];
+    fileWatcher.setOnChange((name) => notifications.push(name));
+
+    const watchPaths = vault.getDB().getWatchPaths(repoName);
+    fileWatcher.watchRepo(repoName, watchPaths);
+    await Bun.sleep(FSEVENTS_SETTLE_MS);
+
+    // Create a new .env file in the project
+    const newEnvPath = join(projectDir, ".env.local");
+    writeFileSync(newEnvPath, "LOCAL_SECRET=dev_only\n");
+
+    await Bun.sleep(DEBOUNCE_WAIT_MS);
+
+    // Verify discovered and added to vault
+    const repo = vault.getDB().get(repoName);
+    expect(repo?.envFiles.length).toBe(2);
+
+    const localEnv = repo?.envFiles.find((f) => f.filename === ".env.local");
+    expect(localEnv).not.toBeNull();
+    expect(localEnv?.keys[0].name).toBe("LOCAL_SECRET");
+    expect(localEnv?.keys[0].value).toBe("dev_only");
+    expect(localEnv?.syncStatus).toBe("synced");
+
+    // Verify frontend was notified
+    expect(notifications).toContain(repoName);
+
+    // Verify persisted through vault reopen
+    const v2 = new VaultManager();
+    await v2.openVault(vaultFile, "test-password");
+    const reopened = v2.getDB().get(repoName);
+    expect(reopened?.envFiles.length).toBe(2);
+    expect(
+      reopened?.envFiles.find((f) => f.filename === ".env.local"),
+    ).not.toBeNull();
+  });
+
+  test("new .env file with no keys is ignored", async () => {
+    const projectDir = nextProject();
+    const envPath = join(projectDir, ".env");
+    writeFileSync(envPath, "KEY=val\n");
+
+    const envFiles = await scanFolder(projectDir);
+    const repoName = basename(projectDir);
+    vault.getDB().add({ name: repoName, path: projectDir, envFiles });
+    await vault.save();
+
+    fileWatcher.setOnNewEnvFile((name, path) =>
+      newEnvFileHandler(vault, name, path),
+    );
+
+    const watchPaths = vault.getDB().getWatchPaths(repoName);
+    fileWatcher.watchRepo(repoName, watchPaths);
+    await Bun.sleep(FSEVENTS_SETTLE_MS);
+
+    // Create an empty .env file (comment only — no valid keys)
+    writeFileSync(join(projectDir, ".env.empty"), "# just a comment\n");
+
+    await Bun.sleep(DEBOUNCE_WAIT_MS);
+
+    expect(vault.getDB().get(repoName)?.envFiles.length).toBe(1);
+  });
+
+  test("auto-discovered file is subsequently tracked for drift", async () => {
+    const projectDir = nextProject();
+    const envPath = join(projectDir, ".env");
+    writeFileSync(envPath, "KEY=val\n");
+
+    const envFiles = await scanFolder(projectDir);
+    const repoName = basename(projectDir);
+    vault.getDB().add({ name: repoName, path: projectDir, envFiles });
+    await vault.save();
+
+    fileWatcher.setOnNewEnvFile((name, path) =>
+      newEnvFileHandler(vault, name, path),
+    );
+
+    const watchPaths = vault.getDB().getWatchPaths(repoName);
+    fileWatcher.watchRepo(repoName, watchPaths);
+    await Bun.sleep(FSEVENTS_SETTLE_MS);
+
+    // Create new file — auto-discovered
+    const newEnvPath = join(projectDir, ".env.local");
+    writeFileSync(newEnvPath, "LOCAL=original\n");
+    await Bun.sleep(DEBOUNCE_WAIT_MS);
+
+    expect(vault.getDB().get(repoName)?.envFiles.length).toBe(2);
+
+    // Now externally modify the new file — should trigger drift detection
+    writeFileSync(newEnvPath, "LOCAL=externally_changed\n");
+    await Bun.sleep(DEBOUNCE_WAIT_MS);
+
+    const localEnv = vault
+      .getDB()
+      .get(repoName)
+      ?.envFiles.find((f) => f.absolutePath === newEnvPath);
+    expect(localEnv?.syncStatus).toBe("disk_changed");
+
+    // Import resolves the drift
+    const result = await importFile(vault, repoName, newEnvPath);
+    expect(
+      result?.envFiles.find((f) => f.absolutePath === newEnvPath)?.keys[0]
+        .value,
+    ).toBe("externally_changed");
   });
 });

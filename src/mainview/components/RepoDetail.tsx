@@ -297,7 +297,9 @@ function DeleteRepoModal({
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        onClose();
+      }
     };
     document.addEventListener("keydown", handleEsc);
     return () => document.removeEventListener("keydown", handleEsc);
@@ -312,7 +314,9 @@ function DeleteRepoModal({
         className="absolute inset-0 bg-black/25 dark:bg-black/50 backdrop-blur-sm"
         onClick={onClose}
         onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") onClose();
+          if (e.key === "Enter" || e.key === " ") {
+            onClose();
+          }
         }}
       />
 
@@ -336,26 +340,35 @@ function DeleteRepoModal({
             Remove project
           </h2>
           <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">
-            This will remove <span className="font-semibold text-gray-700 dark:text-gray-200">{repoName}</span> and
-            all its tracked keys from the vault. Files on disk are not affected.
+            This will remove{" "}
+            <span className="font-semibold text-gray-700 dark:text-gray-200">
+              {repoName}
+            </span>{" "}
+            and all its tracked keys from the vault. Files on disk are not
+            affected.
           </p>
         </div>
 
         {/* Confirmation input */}
         <div className="px-6 pb-4">
           <label className="block text-[12px] font-medium text-gray-500 dark:text-gray-400 mb-2">
-            Type <span className="font-mono font-semibold text-gray-700 dark:text-gray-200">{repoName}</span> to confirm
+            Type{" "}
+            <span className="font-mono font-semibold text-gray-700 dark:text-gray-200">
+              {repoName}
+            </span>{" "}
+            to confirm
           </label>
           <input
             type="text"
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && matches) onConfirm();
+              if (e.key === "Enter" && matches) {
+                onConfirm();
+              }
             }}
             spellCheck={false}
             autoComplete="off"
-            autoFocus
             className="w-full px-3 py-2 rounded-lg text-[13px] font-mono bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400/30 transition-colors"
           />
         </div>
@@ -399,9 +412,13 @@ export function RepoDetail() {
   };
 
   const handleDelete = async () => {
-    if (!name) return;
+    if (!name) {
+      return;
+    }
     const ok = await deleteRepo(name);
-    if (ok) navigate("/");
+    if (ok) {
+      navigate("/");
+    }
   };
 
   if (!repo) {

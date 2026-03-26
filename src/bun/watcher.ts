@@ -2,6 +2,7 @@ import { existsSync, type FSWatcher, watch } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import type { InMemoryDB } from "./db";
+import { isEnvFilename } from "./scanner";
 
 const DEFAULT_DEBOUNCE_MS = 300;
 
@@ -22,6 +23,10 @@ class FileWatcher {
   private timers = new Map<string, Timer>();
   /** Called when a file's sync status changes */
   private onChange: ((repoName: string) => void) | null = null;
+  /** Called when a new .env file appears in a watched directory */
+  private onNewEnvFile:
+    | ((repoName: string, absolutePath: string) => Promise<boolean>)
+    | null = null;
   /** Callback to get the current InMemoryDB (provided by VaultManager) */
   private getDB: (() => InMemoryDB) | null = null;
   private debounceMs = DEFAULT_DEBOUNCE_MS;
@@ -32,6 +37,12 @@ class FileWatcher {
 
   setOnChange(cb: (repoName: string) => void): void {
     this.onChange = cb;
+  }
+
+  setOnNewEnvFile(
+    cb: ((repoName: string, absolutePath: string) => Promise<boolean>) | null,
+  ): void {
+    this.onNewEnvFile = cb;
   }
 
   setDebounceMs(ms: number): void {
@@ -70,10 +81,23 @@ class FileWatcher {
     for (const [dir, fileNames] of dirToFiles) {
       try {
         const fsw = watch(dir, (_event, changedFile) => {
-          // changedFile is the basename of whatever changed in this directory
-          if (changedFile && fileNames.has(changedFile)) {
+          if (!changedFile) {
+            return;
+          }
+
+          if (fileNames.has(changedFile)) {
+            // Known tracked file changed — check for drift
             const absolutePath = join(dir, changedFile);
             this.scheduleCheck(repoName, absolutePath);
+          } else if (isEnvFilename(changedFile)) {
+            // New .env file appeared in a watched directory
+            const absolutePath = join(dir, changedFile);
+            this.scheduleNewFileCheck(
+              repoName,
+              absolutePath,
+              fileNames,
+              tracked,
+            );
           }
         });
 
@@ -142,6 +166,50 @@ class FileWatcher {
       setTimeout(() => {
         this.timers.delete(absolutePath);
         this.checkFile(repoName, absolutePath);
+      }, this.debounceMs),
+    );
+  }
+
+  /**
+   * Debounced handler for a new .env file appearing in a watched directory.
+   * If onNewEnvFile returns true (file was added to vault), the file is
+   * promoted to the tracked set so future modifications go through normal
+   * drift detection.
+   */
+  private scheduleNewFileCheck(
+    repoName: string,
+    absolutePath: string,
+    dirFileNames: Set<string>,
+    repoTracked: Set<string>,
+  ): void {
+    const existing = this.timers.get(absolutePath);
+    if (existing) {
+      clearTimeout(existing);
+    }
+
+    this.timers.set(
+      absolutePath,
+      setTimeout(async () => {
+        this.timers.delete(absolutePath);
+
+        // Repo was unwatched while timer was pending
+        if (!this.dirWatchers.has(repoName)) {
+          return;
+        }
+
+        // File must exist and not already be tracked
+        if (!existsSync(absolutePath) || repoTracked.has(absolutePath)) {
+          return;
+        }
+
+        if (this.onNewEnvFile) {
+          const added = await this.onNewEnvFile(repoName, absolutePath);
+          if (added) {
+            repoTracked.add(absolutePath);
+            dirFileNames.add(basename(absolutePath));
+            this.notify(repoName);
+          }
+        }
       }, this.debounceMs),
     );
   }

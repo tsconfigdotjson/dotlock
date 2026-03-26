@@ -71,6 +71,7 @@ afterEach(() => {
   // Reset callbacks so nothing leaks between tests
   fileWatcher.setGetDB(null as unknown as () => InMemoryDB);
   fileWatcher.setOnChange(null as unknown as (repoName: string) => void);
+  fileWatcher.setOnNewEnvFile(null);
   if (existsSync(TEST_DIR)) {
     rmSync(TEST_DIR, { recursive: true, force: true });
   }
@@ -453,5 +454,143 @@ describe("multiple files in one repo", () => {
     const repo = db.get("multi-repo");
     expect(repo?.envFiles[0].syncStatus).toBe("disk_changed");
     expect(repo?.envFiles[1].syncStatus).toBe("synced");
+  });
+});
+
+// ── New env file detection ──────────────────────────────────────────
+
+describe("new env file detection", () => {
+  test("new .env file in a watched directory triggers onNewEnvFile", async () => {
+    const filePath = join(TEST_DIR, ".env");
+    writeFileSync(filePath, "KEY=value");
+    db.add(makeRepo("detect-repo", filePath, "KEY=value"));
+
+    const detected: { repoName: string; path: string }[] = [];
+    fileWatcher.setOnNewEnvFile(async (repoName, absolutePath) => {
+      detected.push({ repoName, path: absolutePath });
+      return true;
+    });
+
+    fileWatcher.watchRepo("detect-repo", [filePath]);
+    await Bun.sleep(FSEVENTS_SETTLE_MS);
+
+    // Create a new .env file in the same directory
+    const newFile = join(TEST_DIR, ".env.local");
+    writeFileSync(newFile, "LOCAL=true");
+
+    await Bun.sleep(DEBOUNCE_WAIT_MS);
+
+    expect(detected.length).toBe(1);
+    expect(detected[0].repoName).toBe("detect-repo");
+    expect(detected[0].path).toBe(newFile);
+  });
+
+  test("non-.env files in watched directory do not trigger onNewEnvFile", async () => {
+    const filePath = join(TEST_DIR, ".env");
+    writeFileSync(filePath, "KEY=value");
+    db.add(makeRepo("ignore-repo", filePath, "KEY=value"));
+
+    const detected: string[] = [];
+    fileWatcher.setOnNewEnvFile(async (_repoName, absolutePath) => {
+      detected.push(absolutePath);
+      return false;
+    });
+
+    fileWatcher.watchRepo("ignore-repo", [filePath]);
+    await Bun.sleep(FSEVENTS_SETTLE_MS);
+
+    // Create a non-.env file
+    writeFileSync(join(TEST_DIR, "readme.md"), "hello");
+
+    await Bun.sleep(DEBOUNCE_WAIT_MS);
+
+    expect(detected.length).toBe(0);
+  });
+
+  test("new file is tracked for drift after onNewEnvFile returns true", async () => {
+    const filePath = join(TEST_DIR, ".env");
+    writeFileSync(filePath, "KEY=value");
+    db.add(makeRepo("track-new-repo", filePath, "KEY=value"));
+
+    fileWatcher.setOnNewEnvFile(async (repoName, absolutePath) => {
+      // Simulate adding the file to the DB (as index.ts would)
+      const repo = db.get(repoName);
+      if (repo) {
+        repo.envFiles.push({
+          filename: ".env.local",
+          absolutePath,
+          rawContent: "LOCAL=true",
+          keys: [],
+          syncStatus: "synced",
+        });
+      }
+      return true;
+    });
+
+    fileWatcher.watchRepo("track-new-repo", [filePath]);
+    await Bun.sleep(FSEVENTS_SETTLE_MS);
+
+    // Create new file — triggers onNewEnvFile
+    const newFile = join(TEST_DIR, ".env.local");
+    writeFileSync(newFile, "LOCAL=true");
+    await Bun.sleep(DEBOUNCE_WAIT_MS);
+
+    // Now modify the new file — should trigger normal drift detection
+    const notifications: string[] = [];
+    fileWatcher.setOnChange((name) => notifications.push(name));
+
+    writeFileSync(newFile, "LOCAL=changed");
+    await Bun.sleep(DEBOUNCE_WAIT_MS);
+
+    const repo = db.get("track-new-repo");
+    const newEnv = repo?.envFiles.find((f) => f.absolutePath === newFile);
+    expect(newEnv?.syncStatus).toBe("disk_changed");
+    expect(notifications).toContain("track-new-repo");
+  });
+
+  test("onNewEnvFile returning false does not track the file", async () => {
+    const filePath = join(TEST_DIR, ".env");
+    writeFileSync(filePath, "KEY=value");
+    db.add(makeRepo("no-track-repo", filePath, "KEY=value"));
+
+    let callCount = 0;
+    fileWatcher.setOnNewEnvFile(async () => {
+      callCount++;
+      return false;
+    });
+
+    fileWatcher.watchRepo("no-track-repo", [filePath]);
+    await Bun.sleep(FSEVENTS_SETTLE_MS);
+
+    // Create a .env file — callback returns false
+    const newFile = join(TEST_DIR, ".env.local");
+    writeFileSync(newFile, "");
+    await Bun.sleep(DEBOUNCE_WAIT_MS);
+
+    expect(callCount).toBe(1);
+
+    // Modify it again — should re-trigger since it was not tracked
+    writeFileSync(newFile, "LOCAL=now-has-keys");
+    await Bun.sleep(DEBOUNCE_WAIT_MS);
+
+    expect(callCount).toBe(2);
+  });
+
+  test("onChange fires after onNewEnvFile adds a file", async () => {
+    const filePath = join(TEST_DIR, ".env");
+    writeFileSync(filePath, "KEY=value");
+    db.add(makeRepo("notify-new-repo", filePath, "KEY=value"));
+
+    const notifications: string[] = [];
+    fileWatcher.setOnChange((name) => notifications.push(name));
+    fileWatcher.setOnNewEnvFile(async () => true);
+
+    fileWatcher.watchRepo("notify-new-repo", [filePath]);
+    await Bun.sleep(FSEVENTS_SETTLE_MS);
+
+    writeFileSync(join(TEST_DIR, ".env.local"), "LOCAL=true");
+    await Bun.sleep(DEBOUNCE_WAIT_MS);
+
+    expect(notifications).toContain("notify-new-repo");
   });
 });
