@@ -162,6 +162,9 @@ export function KeyModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. API_KEY"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 className="w-full px-3 py-2.5 rounded-lg text-[13px] font-mono bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[var(--system-accent)] focus:ring-1 focus:ring-[var(--system-accent)]/30 transition-colors"
               />
               {name.length > 0 && !validName && (
@@ -183,6 +186,9 @@ export function KeyModal({
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 rows={3}
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 className="w-full px-3 py-2.5 rounded-lg text-[13px] font-mono bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[var(--system-accent)] focus:ring-1 focus:ring-[var(--system-accent)]/30 transition-colors resize-none select-text"
                 style={
                   !visible
@@ -427,6 +433,9 @@ export function KeyRow({
             type={visible ? "text" : "password"}
             value={entry.value}
             readOnly
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
             className="w-full px-3 py-2 rounded-md text-xs font-mono bg-gray-50 dark:bg-white/[0.04] border border-gray-100 dark:border-white/[0.06] text-gray-400 dark:text-gray-500 focus:outline-none focus:border-[var(--system-accent)] focus:ring-1 focus:ring-[var(--system-accent)]/30 transition-colors select-text"
           />
         </div>

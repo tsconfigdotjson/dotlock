@@ -129,6 +129,9 @@ export function VaultPicker({
                   value={vaultName}
                   onChange={(e) => setVaultName(e.target.value)}
                   placeholder="my-secrets"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                   className="w-full px-3 py-2.5 rounded-lg text-[13px] font-mono bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-[var(--system-accent)] focus:ring-1 focus:ring-[var(--system-accent)]/30 transition-colors"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -223,7 +226,7 @@ export function VaultPicker({
                     </span>
                   </div>
                   <div className="space-y-1">
-                    {recents.map((meta) => (
+                    {recents.slice(0, 3).map((meta) => (
                       <button
                         type="button"
                         key={meta.path}

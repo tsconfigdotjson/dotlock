@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as rpc from "../rpc";
 import { EyeIcon, EyeSlashIcon, FingerprintIcon } from "./icons";
 import { Logo } from "./Logo";
@@ -69,7 +69,7 @@ export function PasswordPrompt({
     }
   };
 
-  const handleTouchID = async () => {
+  const handleTouchID = useCallback(async () => {
     setError(null);
     setLoading(true);
 
@@ -92,7 +92,16 @@ export function PasswordPrompt({
     } finally {
       setLoading(false);
     }
-  };
+  }, [vaultPath, onUnlocked]);
+
+  // Auto-trigger Touch ID when returning to a vault that has it enabled
+  const autoTriggered = useRef(false);
+  useEffect(() => {
+    if (hasKeychain && mode === "open" && !autoTriggered.current) {
+      autoTriggered.current = true;
+      handleTouchID();
+    }
+  }, [hasKeychain, mode, handleTouchID]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !loading) {
@@ -161,6 +170,9 @@ export function PasswordPrompt({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={handleKeyDown}
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 className="w-full px-3 py-2.5 pr-10 rounded-lg text-[13px] font-mono bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[var(--system-accent)] focus:ring-1 focus:ring-[var(--system-accent)]/30 transition-colors"
               />
               <button
@@ -188,6 +200,9 @@ export function PasswordPrompt({
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 onKeyDown={handleKeyDown}
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 className="w-full px-3 py-2.5 rounded-lg text-[13px] font-mono bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/[0.08] text-gray-900 dark:text-gray-100 focus:outline-none focus:border-[var(--system-accent)] focus:ring-1 focus:ring-[var(--system-accent)]/30 transition-colors"
               />
             </div>
@@ -202,8 +217,8 @@ export function PasswordPrompt({
             </div>
           )}
 
-          {/* Save to keychain checkbox (open mode) */}
-          {mode === "open" && !hasKeychain && (
+          {/* Save to keychain checkbox (create or open without keychain) */}
+          {!hasKeychain && (
             <label className="flex items-center gap-2 mt-4 cursor-pointer">
               <input
                 type="checkbox"
