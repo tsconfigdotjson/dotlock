@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1200" />
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700,900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --cream: #E3E2DE;
+    --jet: #141414;
+    --graphite: #333333;
+    --deep-gray: #444343;
+    --muted: #7A7A7A;
+    --divider: #C7C7C7;
+    --font-sans: "General Sans", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", monospace;
+  }
+
+  body {
+    width: 1200px;
+    height: 630px;
+    background: var(--cream);
+    font-family: var(--font-sans);
+    color: var(--jet);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .frame {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    grid-template-rows: 1fr auto;
+  }
+
+  /* ── Left sidebar ── */
+  .sidebar {
+    grid-row: 1 / -1;
+    border-right: 1px solid var(--divider);
+    padding: 48px 36px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-area svg {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+  }
+
+  .wordmark {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--jet);
+  }
+
+  .sidebar-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    line-height: 1.8;
+  }
+
+  .sidebar-label span {
+    display: block;
+  }
+
+  /* ── Main content ── */
+  .main {
+    padding: 52px 56px 0 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .headline {
+    font-size: 82px;
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -0.045em;
+    text-transform: uppercase;
+    color: var(--jet);
+  }
+
+  .headline .accent {
+    color: var(--graphite);
+  }
+
+  .sub {
+    margin-top: 32px;
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--deep-gray);
+    max-width: 520px;
+  }
+
+  /* ── Bottom bar ── */
+  .bottom {
+    grid-column: 2;
+    border-top: 1px solid var(--divider);
+    padding: 20px 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .tags {
+    display: flex;
+    gap: 28px;
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+
+  .url {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--jet);
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+  <div class="frame">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="logo-area">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="20 10.25 80 103.75">
+          <defs>
+            <mask id="logo-mask">
+              <rect width="80" height="56" x="20" y="58" fill="#fff" rx="12" />
+              <text x="60" y="80" font-family="'SF Mono','Menlo','Monaco','Courier New',monospace" font-size="17" font-weight="700" text-anchor="middle">$ENV</text>
+              <path stroke="#000" stroke-width="1.2" d="M32 88h56" />
+              <text x="60" y="103" font-family="'SF Mono','Menlo','Monaco','Courier New',monospace" font-size="11" letter-spacing="3" text-anchor="middle">&#x25CF;&#x25CF;&#x25CF;</text>
+            </mask>
+          </defs>
+          <path fill="none" stroke="#141414" stroke-linecap="round" stroke-width="7.5" d="M34 62V40a26 26 0 0 1 52 0v22" />
+          <rect width="80" height="56" x="20" y="58" fill="#141414" mask="url(#logo-mask)" rx="12" />
+        </svg>
+        <span class="wordmark">dotlock</span>
+      </div>
+
+      <div class="sidebar-label">
+        <span>01 &mdash; Env Vault</span>
+        <span>AES-256-GCM</span>
+        <span>macOS Native</span>
+      </div>
+    </div>
+
+    <!-- Headline -->
+    <div class="main">
+      <div class="headline">
+        Manage,<br />
+        backup &amp;<br />
+        <span class="accent">secure</span><br />
+        your .env<br />
+        files
+      </div>
+    </div>
+
+    <!-- Bottom strip -->
+    <div class="bottom">
+      <div class="tags">
+        <span class="tag">Zero Network</span>
+        <span class="tag">Touch ID</span>
+        <span class="tag">Drift Detection</span>
+      </div>
+      <span class="url">dotlock.dev</span>
+    </div>
+
+  </div>
+</body>
+</html>
