@@ -264,7 +264,7 @@ function ScreenshotCard({
   src: string;
   alt: string;
   label: string;
-  onOpen: (src: string, label: string) => void;
+  onOpen: () => void;
 }) {
   return (
     <div>
@@ -273,7 +273,7 @@ function ScreenshotCard({
       </span>
       <button
         type="button"
-        onClick={() => onOpen(src, label)}
+        onClick={() => onOpen()}
         className="w-full text-left cursor-pointer group"
       >
         <img
@@ -290,10 +290,14 @@ function Lightbox({
   src,
   label,
   onClose,
+  onPrev,
+  onNext,
 }: {
   src: string;
   label: string;
   onClose: () => void;
+  onPrev: (() => void) | null;
+  onNext: (() => void) | null;
 }) {
   const [visible, setVisible] = useState(false);
 
@@ -302,11 +306,15 @@ function Lightbox({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
+      } else if (e.key === "ArrowLeft" && onPrev) {
+        onPrev();
+      } else if (e.key === "ArrowRight" && onNext) {
+        onNext();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, onPrev, onNext]);
 
   return (
     <div
@@ -348,7 +356,7 @@ function Lightbox({
           transition: "opacity 400ms cubic-bezier(0.22, 1, 0.36, 1) 200ms",
         }}
       >
-        ESC / CLICK TO CLOSE
+        ← → NAVIGATE · ESC / CLICK TO CLOSE
       </span>
     </div>
   );
@@ -383,10 +391,7 @@ const screenshots = [
 ];
 
 function Screenshots() {
-  const [lightbox, setLightbox] = useState<{
-    src: string;
-    label: string;
-  } | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -501,7 +506,7 @@ function Screenshots() {
                     src={s.src}
                     alt={s.alt}
                     label={s.label}
-                    onOpen={(src, label) => setLightbox({ src, label })}
+                    onOpen={() => setLightboxIndex(screenshots.indexOf(s))}
                   />
                 </div>
               ))}
@@ -509,11 +514,19 @@ function Screenshots() {
           </div>
         </div>
       </section>
-      {lightbox && (
+      {lightboxIndex !== null && (
         <Lightbox
-          src={lightbox.src}
-          label={lightbox.label}
-          onClose={() => setLightbox(null)}
+          src={screenshots[lightboxIndex].src}
+          label={screenshots[lightboxIndex].label}
+          onClose={() => setLightboxIndex(null)}
+          onPrev={
+            lightboxIndex > 0 ? () => setLightboxIndex(lightboxIndex - 1) : null
+          }
+          onNext={
+            lightboxIndex < screenshots.length - 1
+              ? () => setLightboxIndex(lightboxIndex + 1)
+              : null
+          }
         />
       )}
     </>
