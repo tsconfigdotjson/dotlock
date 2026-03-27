@@ -434,7 +434,7 @@ function Screenshots() {
                 type="button"
                 onClick={() => scroll("left")}
                 disabled={!canScrollLeft}
-                className="w-9 h-9 flex items-center justify-center border border-divider text-jet hover:bg-jet hover:text-cream disabled:opacity-20 disabled:cursor-not-allowed transition-colors duration-200"
+                className="w-9 h-9 flex items-center justify-center border border-divider text-jet hover:bg-jet hover:text-cream cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-colors duration-200"
                 aria-label="Previous screenshot"
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -445,7 +445,7 @@ function Screenshots() {
                 type="button"
                 onClick={() => scroll("right")}
                 disabled={!canScrollRight}
-                className="w-9 h-9 flex items-center justify-center border border-divider text-jet hover:bg-jet hover:text-cream disabled:opacity-20 disabled:cursor-not-allowed transition-colors duration-200"
+                className="w-9 h-9 flex items-center justify-center border border-divider text-jet hover:bg-jet hover:text-cream cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-colors duration-200"
                 aria-label="Next screenshot"
               >
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
