@@ -393,14 +393,18 @@ function Screenshots() {
 
   const checkScroll = useCallback(() => {
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     setCanScrollLeft(el.scrollLeft > 2);
     setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
   }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     checkScroll();
     el.addEventListener("scroll", checkScroll, { passive: true });
     window.addEventListener("resize", checkScroll);
@@ -412,8 +416,12 @@ function Screenshots() {
 
   const scroll = (direction: "left" | "right") => {
     const el = scrollRef.current;
-    if (!el) return;
-    const cardWidth = el.querySelector<HTMLElement>(":scope > div")?.offsetWidth ?? el.clientWidth * 0.6;
+    if (!el) {
+      return;
+    }
+    const cardWidth =
+      el.querySelector<HTMLElement>(":scope > div")?.offsetWidth ??
+      el.clientWidth * 0.6;
     el.scrollBy({
       left: direction === "left" ? -cardWidth - 24 : cardWidth + 24,
       behavior: "smooth",
@@ -437,8 +445,19 @@ function Screenshots() {
                 className="w-9 h-9 flex items-center justify-center border border-divider text-jet hover:bg-jet hover:text-cream cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-colors duration-200"
                 aria-label="Previous screenshot"
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" />
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M9 2L4 7L9 12"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="square"
+                  />
                 </svg>
               </button>
               <button
@@ -448,8 +467,19 @@ function Screenshots() {
                 className="w-9 h-9 flex items-center justify-center border border-divider text-jet hover:bg-jet hover:text-cream cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-colors duration-200"
                 aria-label="Next screenshot"
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M5 2L10 7L5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="square" />
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M5 2L10 7L5 12"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="square"
+                  />
                 </svg>
               </button>
             </div>
@@ -462,9 +492,9 @@ function Screenshots() {
               style={{ scrollbarWidth: "none" }}
             >
               <style>{`[data-screenshot-track]::-webkit-scrollbar { display: none; }`}</style>
-              {screenshots.map((s, i) => (
+              {screenshots.map((s) => (
                 <div
-                  key={i}
+                  key={s.src}
                   className="snap-start shrink-0 w-[85%] md:w-[calc(50%-12px)]"
                 >
                   <ScreenshotCard
