@@ -495,7 +495,7 @@ function Screenshots() {
               {screenshots.map((s) => (
                 <div
                   key={s.src}
-                  className="snap-start shrink-0 w-[85%] md:w-[calc(50%-12px)]"
+                  className="snap-start shrink-0 w-full md:w-[calc(50%-12px)]"
                 >
                   <ScreenshotCard
                     src={s.src}
