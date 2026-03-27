@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Logo } from "../components/Logo";
 import { DOWNLOAD_URL } from "../lib/constants";
 
@@ -354,11 +354,79 @@ function Lightbox({
   );
 }
 
+const screenshots = [
+  {
+    src: "/screenshot-dashboard.png",
+    alt: "dotlock dashboard showing project overview",
+    label: "DASHBOARD",
+  },
+  {
+    src: "/screenshot-detail.png",
+    alt: "dotlock project detail showing key management",
+    label: "MANAGE KEYS",
+  },
+  {
+    src: "/screenshot-add.png",
+    alt: "dotlock new key dialog",
+    label: "ADD KEY",
+  },
+  {
+    src: "/screenshot-edit.png",
+    alt: "dotlock edit key dialog",
+    label: "EDIT KEY",
+  },
+  {
+    src: "/screenshot-drift.png",
+    alt: "dotlock drift detection showing file changed on disk",
+    label: "DRIFT DETECTION",
+  },
+];
+
 function Screenshots() {
   const [lightbox, setLightbox] = useState<{
     src: string;
     label: string;
   } | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    checkScroll();
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    window.addEventListener("resize", checkScroll);
+    return () => {
+      el.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [checkScroll]);
+
+  const scroll = (direction: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) {
+      return;
+    }
+    const cardWidth =
+      el.querySelector<HTMLElement>(":scope > div")?.offsetWidth ??
+      el.clientWidth * 0.6;
+    el.scrollBy({
+      left: direction === "left" ? -cardWidth - 24 : cardWidth + 24,
+      behavior: "smooth",
+    });
+  };
 
   return (
     <>
@@ -368,19 +436,75 @@ function Screenshots() {
             <SidebarLabel>THE APP</SidebarLabel>
           </div>
           <div className="lg:col-span-9 px-6 py-8 lg:px-12 lg:py-16">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <ScreenshotCard
-                src="/screenshot-dashboard.png"
-                alt="dotlock dashboard showing project overview"
-                label="DASHBOARD"
-                onOpen={(src, label) => setLightbox({ src, label })}
-              />
-              <ScreenshotCard
-                src="/screenshot-detail.png"
-                alt="dotlock project detail showing key management"
-                label="MANAGE KEYS"
-                onOpen={(src, label) => setLightbox({ src, label })}
-              />
+            {/* Navigation arrows */}
+            <div className="flex items-center justify-end gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => scroll("left")}
+                disabled={!canScrollLeft}
+                className="w-9 h-9 flex items-center justify-center border border-divider text-jet hover:bg-jet hover:text-cream cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-colors duration-200"
+                aria-label="Previous screenshot"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M9 2L4 7L9 12"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="square"
+                  />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => scroll("right")}
+                disabled={!canScrollRight}
+                className="w-9 h-9 flex items-center justify-center border border-divider text-jet hover:bg-jet hover:text-cream cursor-pointer disabled:opacity-20 disabled:cursor-not-allowed transition-colors duration-200"
+                aria-label="Next screenshot"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M5 2L10 7L5 12"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="square"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Scrollable track */}
+            <div
+              ref={scrollRef}
+              data-screenshot-track=""
+              className="flex gap-6 overflow-x-auto snap-x snap-mandatory scroll-smooth"
+              style={{ scrollbarWidth: "none" }}
+            >
+              <style>{`[data-screenshot-track]::-webkit-scrollbar { display: none; }`}</style>
+              {screenshots.map((s) => (
+                <div
+                  key={s.src}
+                  className="snap-start shrink-0 w-[85%] md:w-[calc(50%-12px)]"
+                >
+                  <ScreenshotCard
+                    src={s.src}
+                    alt={s.alt}
+                    label={s.label}
+                    onOpen={(src, label) => setLightbox({ src, label })}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         </div>
