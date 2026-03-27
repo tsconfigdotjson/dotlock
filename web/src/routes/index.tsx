@@ -366,9 +366,19 @@ const screenshots = [
     label: "MANAGE KEYS",
   },
   {
-    src: "/screenshot-dashboard.png",
-    alt: "dotlock dashboard showing project overview",
-    label: "DASHBOARD — ALT",
+    src: "/screenshot-add.png",
+    alt: "dotlock new key dialog",
+    label: "ADD KEY",
+  },
+  {
+    src: "/screenshot-edit.png",
+    alt: "dotlock edit key dialog",
+    label: "EDIT KEY",
+  },
+  {
+    src: "/screenshot-drift.png",
+    alt: "dotlock drift detection showing file changed on disk",
+    label: "DRIFT DETECTION",
   },
 ];
 
