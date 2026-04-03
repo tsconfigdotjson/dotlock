@@ -8,10 +8,7 @@
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
-    "@instantdb/admin": "^0.22.171",
-    "@instantdb/core": "^0.22.171",
-    "hono": "^4.10.5",
-    "stripe": "^20.1.0"
+    "hono": "^4.10.5"
   },
   "devDependencies": {
     "typescript": "~5.9.3",

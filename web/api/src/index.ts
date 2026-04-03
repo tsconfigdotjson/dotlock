@@ -1,15 +1,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { type AppBindings, requestContextMiddleware } from "./context";
-import { handleCheckout } from "./routes/checkout";
-import { handleStripeWebhook } from "./routes/stripe-webhook";
 
-const app = new Hono<AppBindings>();
-
-app.use("*", requestContextMiddleware);
-
-app.get("/api/checkout", handleCheckout);
-app.post("/api/webhooks/stripe", handleStripeWebhook);
+const app = new Hono();
 
 app.all("*", async (c) => {
   const assets = (c.env as Env & { ASSETS: { fetch: typeof fetch } }).ASSETS;

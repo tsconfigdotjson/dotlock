@@ -1,11 +1,4 @@
-import type {
-  ActivationResult,
-  DotlockRPC,
-  LicenseInfo,
-  Repo,
-  VaultMeta,
-  VaultState,
-} from "../shared/types";
+import type { DotlockRPC, Repo, VaultMeta, VaultState } from "../shared/types";
 
 // Derive the webview→bun request proxy from the DotlockRPC schema.
 // electrobun doesn't export RPCRequestsProxy, so we map it ourselves.
@@ -236,17 +229,4 @@ export function addKey(
 
 export function openExternal(url: string): Promise<boolean> {
   return rpcCall((r) => r.request.openExternal({ url }), false);
-}
-
-// ── License ──────────────────────────────────────────────────────────
-
-export function activateLicense(key: string): Promise<ActivationResult> {
-  return rpcCall((r) => r.request.activateLicense({ key }), {
-    success: false,
-    error: "RPC not available",
-  });
-}
-
-export function getLicenseStatus(): Promise<LicenseInfo> {
-  return rpcCall((r) => r.request.getLicenseStatus({}), { licensed: false });
 }

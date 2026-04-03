@@ -15,8 +15,5 @@ export default defineConfig({
   },
   server: {
     allowedHosts: ["dev.dotlock.dev"],
-    proxy: {
-      "/api": "http://localhost:8787",
-    },
   },
 });

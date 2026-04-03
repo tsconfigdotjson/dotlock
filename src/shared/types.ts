@@ -42,17 +42,6 @@ export type VaultData = {
   lastModified: string;
 };
 
-// ── License types ───────────────────────────────────────────────────
-
-export type LicenseInfo = {
-  licensed: boolean;
-};
-
-export type ActivationResult = {
-  success: boolean;
-  error?: string;
-};
-
 // ── RPC schema ──────────────────────────────────────────────────────
 
 export type DotlockRPC = {
@@ -160,16 +149,6 @@ export type DotlockRPC = {
 
       // Shell
       openExternal: { params: { url: string }; response: boolean };
-
-      // License
-      activateLicense: {
-        params: { key: string };
-        response: ActivationResult;
-      };
-      getLicenseStatus: {
-        params: Record<string, never>;
-        response: LicenseInfo;
-      };
     };
   }>;
   webview: RPCSchema<{

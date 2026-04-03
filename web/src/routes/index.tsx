@@ -674,9 +674,7 @@ function Access() {
               EXPLORING
             </h2>
             <p className="text-lg text-deep-gray max-w-lg leading-relaxed">
-              Free for up to 2 projects. One-time purchase for unlimited.
-              <br />
-              No subscription. No account. No cloud. Just a license key.
+              Completely free. No account. No cloud. Just download and go.
             </p>
           </div>
           <div className="mt-12 flex justify-start lg:justify-end">

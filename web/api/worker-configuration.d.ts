@@ -6,13 +6,6 @@ declare namespace Cloudflare {
 		mainModule: typeof import("./src/index");
 	}
 	interface Env {
-		VITE_INSTANTDB_APP_ID: string;
-		INSTANTDB_ADMIN_TOKEN: string;
-		STRIPE_SECRET_KEY: string;
-		STRIPE_WEBHOOK_SECRET: string;
-		STRIPE_PRICE_ID: string;
-		HOST: string;
-		LICENSE_PRIVATE_KEY_PEM: string;
 	}
 }
 interface Env extends Cloudflare.Env {}

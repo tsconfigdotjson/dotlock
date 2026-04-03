@@ -1,8 +1,6 @@
 export type {
-  ActivationResult,
   EnvFile,
   KeyEntry,
-  LicenseInfo,
   Repo,
   SyncStatus,
   VaultMeta,
