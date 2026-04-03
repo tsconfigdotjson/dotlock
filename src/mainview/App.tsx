@@ -6,13 +6,11 @@ import {
   useMemo,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { Dashboard } from "./components/Dashboard";
 import { FolderIcon, KeyIcon, LockIcon } from "./components/icons";
 import { Logo } from "./components/Logo";
 import { PasswordPrompt } from "./components/PasswordPrompt";
-import { PaywallModal } from "./components/PaywallModal";
 import { ProviderDetail } from "./components/ProviderDetail";
 import { RepoDetail } from "./components/RepoDetail";
 import { SidebarLink } from "./components/SidebarLink";
@@ -21,8 +19,6 @@ import { VaultPicker } from "./components/VaultPicker";
 import * as rpc from "./rpc";
 import type { Repo, Theme, VaultState } from "./types";
 import { applyTheme } from "./utils";
-
-const FREE_PROJECT_LIMIT = 2;
 
 // ── App state machine ───────────────────────────────────────────────
 
@@ -88,8 +84,6 @@ function UnlockedApp({
   const [repos, setRepos] = useState<Repo[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingRepo, setAddingRepo] = useState(false);
-  const [licensed, setLicensed] = useState(false);
-  const [showPaywall, setShowPaywall] = useState(false);
   const location = useLocation();
 
   // Initial load
@@ -97,9 +91,6 @@ function UnlockedApp({
     rpc.getRepos().then((r) => {
       setRepos(r);
       setLoading(false);
-    });
-    rpc.getLicenseStatus().then((status) => {
-      setLicensed(status.licensed);
     });
   }, []);
 
@@ -127,10 +118,6 @@ function UnlockedApp({
   };
 
   const addRepo = async () => {
-    if (repos.length >= FREE_PROJECT_LIMIT && !licensed) {
-      setShowPaywall(true);
-      return;
-    }
     await doAddRepo();
   };
 
@@ -168,11 +155,6 @@ function UnlockedApp({
 
   // Derive active sidebar item from route
   const activeRepo = location.pathname.match(/^\/repo\/(.+)/)?.[1] || null;
-
-  const handlePaywallActivated = () => {
-    setLicensed(true);
-    setShowPaywall(false);
-  };
 
   return (
     <RepoContext.Provider
@@ -270,15 +252,6 @@ function UnlockedApp({
           </Routes>
         </main>
       </div>
-
-      {showPaywall &&
-        createPortal(
-          <PaywallModal
-            onActivated={handlePaywallActivated}
-            onClose={() => setShowPaywall(false)}
-          />,
-          document.body,
-        )}
     </RepoContext.Provider>
   );
 }

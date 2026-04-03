@@ -5,18 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"vite\" \"cd api && bun run dev\" --names \"vite,api\" --prefix-colors \"cyan,magenta\"",
-    "dev:tunnel": "concurrently \"vite\" \"cd api && bun run dev\" \"cloudflared tunnel --config api/cloudflared.yml run\" --names \"vite,api,tunnel\" --prefix-colors \"cyan,magenta,yellow\"",
     "dev:web": "vite",
-    "push:schema": "bun --env-file=api/.env scripts/push-instant.ts schema",
-    "push:perms": "bun --env-file=api/.env scripts/push-instant.ts perms",
     "build": "tsc -b && vite build --mode production",
     "deploy": "bun run build && cd api && bun run deploy:production",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@instantdb/core": "^0.22.171",
-    "@instantdb/react": "^0.22.171",
     "@tanstack/react-router": "^1.168.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"

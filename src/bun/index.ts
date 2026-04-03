@@ -14,7 +14,6 @@ import {
   retrievePassword,
   storePassword,
 } from "./keychain";
-import { activateLicense, getLicenseStatus } from "./license";
 import {
   addKey as addKeyOp,
   deleteKey as deleteKeyOp,
@@ -262,10 +261,6 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
           return false;
         }
       },
-
-      // ── License ─────────────────────────────────────────────────────
-      activateLicense: async ({ key }) => activateLicense(key),
-      getLicenseStatus: async () => getLicenseStatus(),
     },
     messages: {},
   },
