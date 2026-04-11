@@ -4,10 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"cd api && bun run dev\" --names \"vite,api\" --prefix-colors \"cyan,magenta\"",
-    "dev:web": "vite",
+    "dev": "vite",
     "build": "tsc -b && vite build --mode production",
-    "deploy": "bun run build && cd api && bun run deploy:production",
     "lint": "eslint .",
     "preview": "vite preview"
   },

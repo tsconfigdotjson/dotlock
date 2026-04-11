@@ -5,5 +5,6 @@ artifacts/
 .electrobun/
 *.tsbuildinfo
 .DS_Store
-web/api/.env
+web/.env
+web/.env.*
 .wrangler/

@@ -11,8 +11,7 @@
       "**",
       "!icon.icon",
       "!**/routeTree.gen.ts",
-      "!**/worker-configuration.d.ts",
-      "!**/.wrangler"
+      "!**/worker-configuration.d.ts"
     ]
   },
   "formatter": {
