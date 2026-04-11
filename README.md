@@ -4,6 +4,8 @@
 
 A macOS desktop app for managing `.env` files across your projects. dotlock encrypts your environment variables into a single vault file, watches for file changes on disk, and optionally protects your vault password with Touch ID.
 
+**[Download dotlock for macOS](https://dotlock.dev)** — free, no account required.
+
 ## Features
 
 - **Encrypted vault** — All secrets stored in a single `.dotlock` file using AES-256-GCM with scrypt key derivation
