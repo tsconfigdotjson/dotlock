@@ -38,8 +38,6 @@ let keychainAccessGroup: String = {
     fatalError("Cannot determine team ID — is DotlockTeamID set in Info.plist?")
 }()
 
-// MARK: - Helpers
-
 func fail(_ message: String) -> Never {
     fputs("error: \(message)\n", stderr)
     exit(1)
@@ -56,8 +54,6 @@ func readStdin() -> String {
     }
     return input
 }
-
-// MARK: - Keychain Operations
 
 func store(service: String, account: String) {
     let password = readStdin()
@@ -168,8 +164,6 @@ func accentColor() {
     )
     print(hex, terminator: "")
 }
-
-// MARK: - Main
 
 let args = CommandLine.arguments
 guard args.count >= 2 else {

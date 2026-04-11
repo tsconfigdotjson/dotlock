@@ -1,7 +1,0 @@
-tunnel: 7852e478-e09f-4b5b-9eed-3155824e94fa
-credentials-file: /Users/lrosen/.cloudflared/7852e478-e09f-4b5b-9eed-3155824e94fa.json
-
-ingress:
-  - hostname: dev.dotlock.dev
-    service: http://localhost:5173
-  - service: http_status:404

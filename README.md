@@ -67,4 +67,4 @@ Electrobun · React · TypeScript · Tailwind CSS · Vite · Bun · Swift (keych
 
 ## License
 
-Private
+[MIT](https://opensource.org/licenses/MIT)
