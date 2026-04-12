@@ -1,6 +1,6 @@
 import { existsSync, type FSWatcher, watch } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, relative } from "node:path";
 import type { InMemoryDB } from "./db";
 import { isEnvFilename } from "./scanner";
 
@@ -13,11 +13,17 @@ const DEFAULT_DEBOUNCE_MS = 300;
  * saves (write-tmp + rename). Watching individual files uses kqueue, which
  * breaks when the inode changes — that's why the old approach failed after
  * the first import.
+ *
+ * The watcher receives an absolute rootPath per repo + a list of repo-relative
+ * file paths. Internally it works with absolute paths (fs.watch needs them),
+ * but translates back to relative paths for DB lookups.
  */
 class FileWatcher {
   /** repo name → list of directory watchers */
   private dirWatchers = new Map<string, FSWatcher[]>();
-  /** Set of absolute paths we care about, per repo */
+  /** repo name → absolute root path on this machine */
+  private repoRoots = new Map<string, string>();
+  /** repo name → Set of tracked relative paths */
   private trackedFiles = new Map<string, Set<string>>();
   /** debounce timers keyed by absolutePath */
   private timers = new Map<string, Timer>();
@@ -25,7 +31,7 @@ class FileWatcher {
   private onChange: ((repoName: string) => void) | null = null;
   /** Called when a new .env file appears in a watched directory */
   private onNewEnvFile:
-    | ((repoName: string, absolutePath: string) => Promise<boolean>)
+    | ((repoName: string, relativePath: string) => Promise<boolean>)
     | null = null;
   /** Callback to get the current InMemoryDB (provided by VaultManager) */
   private getDB: (() => InMemoryDB) | null = null;
@@ -40,7 +46,7 @@ class FileWatcher {
   }
 
   setOnNewEnvFile(
-    cb: ((repoName: string, absolutePath: string) => Promise<boolean>) | null,
+    cb: ((repoName: string, relativePath: string) => Promise<boolean>) | null,
   ): void {
     this.onNewEnvFile = cb;
   }
@@ -60,20 +66,22 @@ class FileWatcher {
     }
   }
 
-  watchRepo(repoName: string, filePaths: string[]): void {
+  watchRepo(repoName: string, rootPath: string, relativePaths: string[]): void {
     this.unwatchRepo(repoName);
 
-    const tracked = new Set(filePaths);
+    this.repoRoots.set(repoName, rootPath);
+    const tracked = new Set(relativePaths);
     this.trackedFiles.set(repoName, tracked);
 
-    // Group files by parent directory
+    // Group files by parent directory (absolute dirs for fs.watch)
     const dirToFiles = new Map<string, Set<string>>();
-    for (const fp of filePaths) {
-      const dir = dirname(fp);
+    for (const rp of relativePaths) {
+      const absolute = join(rootPath, rp);
+      const dir = dirname(absolute);
       if (!dirToFiles.has(dir)) {
         dirToFiles.set(dir, new Set());
       }
-      dirToFiles.get(dir)?.add(basename(fp));
+      dirToFiles.get(dir)?.add(basename(absolute));
     }
 
     const watchers: FSWatcher[] = [];
@@ -111,7 +119,9 @@ class FileWatcher {
         const currentDB = this.db();
         if (currentDB) {
           for (const name of fileNames) {
-            currentDB.updateSyncStatus(repoName, join(dir, name), "missing");
+            const absolutePath = join(dir, name);
+            const rp = relative(rootPath, absolutePath);
+            currentDB.updateSyncStatus(repoName, rp, "missing");
           }
         }
       }
@@ -121,8 +131,8 @@ class FileWatcher {
 
     // Verify all tracked files against disk immediately.
     // This catches changes made while the app was closed.
-    for (const fp of filePaths) {
-      this.scheduleCheck(repoName, fp);
+    for (const rp of relativePaths) {
+      this.scheduleCheck(repoName, join(rootPath, rp));
     }
   }
 
@@ -137,16 +147,19 @@ class FileWatcher {
 
     // Clean up any pending timers for this repo's files
     const tracked = this.trackedFiles.get(repoName);
-    if (tracked) {
-      for (const fp of tracked) {
-        const timer = this.timers.get(fp);
+    const root = this.repoRoots.get(repoName);
+    if (tracked && root) {
+      for (const rp of tracked) {
+        const absolutePath = join(root, rp);
+        const timer = this.timers.get(absolutePath);
         if (timer) {
           clearTimeout(timer);
-          this.timers.delete(fp);
+          this.timers.delete(absolutePath);
         }
       }
-      this.trackedFiles.delete(repoName);
     }
+    this.trackedFiles.delete(repoName);
+    this.repoRoots.delete(repoName);
   }
 
   unwatchAll(): void {
@@ -197,15 +210,21 @@ class FileWatcher {
           return;
         }
 
+        const root = this.repoRoots.get(repoName);
+        if (!root) {
+          return;
+        }
+        const relativePath = relative(root, absolutePath);
+
         // File must exist and not already be tracked
-        if (!existsSync(absolutePath) || repoTracked.has(absolutePath)) {
+        if (!existsSync(absolutePath) || repoTracked.has(relativePath)) {
           return;
         }
 
         if (this.onNewEnvFile) {
-          const added = await this.onNewEnvFile(repoName, absolutePath);
+          const added = await this.onNewEnvFile(repoName, relativePath);
           if (added) {
-            repoTracked.add(absolutePath);
+            repoTracked.add(relativePath);
             dirFileNames.add(basename(absolutePath));
             this.notify(repoName);
           }
@@ -228,7 +247,13 @@ class FileWatcher {
       return;
     }
 
-    const envFile = repo.envFiles.find((f) => f.absolutePath === absolutePath);
+    const root = this.repoRoots.get(repoName);
+    if (!root) {
+      return;
+    }
+    const relativePath = relative(root, absolutePath);
+
+    const envFile = repo.envFiles.find((f) => f.relativePath === relativePath);
     if (!envFile) {
       return;
     }
@@ -236,7 +261,7 @@ class FileWatcher {
     const prevStatus = envFile.syncStatus;
 
     if (!existsSync(absolutePath)) {
-      currentDB.updateSyncStatus(repoName, absolutePath, "missing");
+      currentDB.updateSyncStatus(repoName, relativePath, "missing");
       if (prevStatus !== "missing") {
         this.notify(repoName);
       }
@@ -251,12 +276,12 @@ class FileWatcher {
       const newStatus =
         vaultNormalized !== diskNormalized ? "disk_changed" : "synced";
 
-      currentDB.updateSyncStatus(repoName, absolutePath, newStatus);
+      currentDB.updateSyncStatus(repoName, relativePath, newStatus);
       if (newStatus !== prevStatus) {
         this.notify(repoName);
       }
     } catch {
-      currentDB.updateSyncStatus(repoName, absolutePath, "missing");
+      currentDB.updateSyncStatus(repoName, relativePath, "missing");
       if (prevStatus !== "missing") {
         this.notify(repoName);
       }

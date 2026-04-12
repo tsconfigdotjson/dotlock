@@ -43,7 +43,7 @@ export class VaultManager {
 
     const now = new Date().toISOString();
     const vaultData: VaultData = {
-      version: 1,
+      version: 2,
       repos: [],
       createdAt: now,
       lastModified: now,
@@ -121,7 +121,7 @@ export class VaultManager {
     }
 
     const vaultData: VaultData = {
-      version: 1,
+      version: 2,
       repos: this.db.toJSON(),
       createdAt: this.createdAt ?? new Date().toISOString(),
       lastModified: new Date().toISOString(),

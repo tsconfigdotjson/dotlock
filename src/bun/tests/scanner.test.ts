@@ -252,10 +252,18 @@ describe("scanFolder", () => {
     expect(files[0].syncStatus).toBe("synced");
   });
 
-  test("stores absolutePath correctly", async () => {
+  test("stores relativePath correctly", async () => {
     writeFileSync(join(SCAN_DIR, ".env"), "KEY=val\n");
     const files = await scanFolder(SCAN_DIR);
-    expect(files[0].absolutePath).toBe(join(SCAN_DIR, ".env"));
+    expect(files[0].relativePath).toBe(".env");
+  });
+
+  test("stores relativePath correctly for nested files", async () => {
+    const sub = join(SCAN_DIR, "packages", "api");
+    mkdirSync(sub, { recursive: true });
+    writeFileSync(join(sub, ".env"), "NESTED=true\n");
+    const files = await scanFolder(SCAN_DIR);
+    expect(files[0].relativePath).toBe(join("packages", "api", ".env"));
   });
 
   test("stores rawContent matching file contents", async () => {

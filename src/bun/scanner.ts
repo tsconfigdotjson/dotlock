@@ -81,9 +81,10 @@ export async function scanFolder(folderPath: string): Promise<EnvFile[]> {
           if (keys.length > 0) {
             const relDir = relative(folderPath, dirname(fullPath));
             const filename = relDir ? `${entry.name} (${relDir})` : entry.name;
+            const relativePath = relative(folderPath, fullPath);
             envFiles.push({
               filename,
-              absolutePath: fullPath,
+              relativePath,
               rawContent: content,
               keys,
               syncStatus: "synced",

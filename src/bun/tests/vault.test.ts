@@ -79,11 +79,10 @@ describe("VaultManager.save", () => {
     // Add a repo
     v1.getDB().add({
       name: "my-project",
-      path: "/tmp/my-project",
       envFiles: [
         {
           filename: ".env",
-          absolutePath: "/tmp/my-project/.env",
+          relativePath: ".env",
           rawContent: "SECRET_KEY=abc123",
           keys: [{ name: "SECRET_KEY", value: "abc123" }],
           syncStatus: "synced",
@@ -107,7 +106,6 @@ describe("VaultManager.save", () => {
     await vault.createVault(testFile, "password");
     vault.getDB().add({
       name: "test",
-      path: "/tmp/test",
       envFiles: [],
     });
     await vault.save();
@@ -150,11 +148,10 @@ describe("full lifecycle", () => {
     // Add repos
     vault.getDB().add({
       name: "repo-a",
-      path: "/path/to/a",
       envFiles: [
         {
           filename: ".env.local",
-          absolutePath: "/path/to/a/.env.local",
+          relativePath: ".env.local",
           rawContent: "API_KEY=key123\nDB_URL=postgres://localhost",
           keys: [
             { name: "API_KEY", value: "key123" },
@@ -166,7 +163,6 @@ describe("full lifecycle", () => {
     });
     vault.getDB().add({
       name: "repo-b",
-      path: "/path/to/b",
       envFiles: [],
     });
     await vault.save();
@@ -198,10 +194,10 @@ describe("full lifecycle", () => {
     const vault = new VaultManager();
     await vault.createVault(testFile, "password");
 
-    vault.getDB().add({ name: "r1", path: "/r1", envFiles: [] });
+    vault.getDB().add({ name: "r1", envFiles: [] });
     const save1 = vault.save();
 
-    vault.getDB().add({ name: "r2", path: "/r2", envFiles: [] });
+    vault.getDB().add({ name: "r2", envFiles: [] });
     const save2 = vault.save();
 
     await Promise.all([save1, save2]);

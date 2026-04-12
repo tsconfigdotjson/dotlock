@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate, useParams } from "react-router-dom";
-import { driftCount, useRepos } from "../App";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { driftCount, isRepoUnlinked, useRepos } from "../App";
 import * as rpc from "../rpc";
-import type { EnvFile, Repo, SyncStatus } from "../types";
+import type { EnvFile, RepoView, SyncStatus } from "../types";
 import {
   AlertTriangleIcon,
   ArrowDownIcon,
@@ -18,7 +18,7 @@ import {
 } from "./icons";
 import { KeyModal, KeyRow } from "./KeyComponents";
 
-function getTotalKeys(repo: Repo): number {
+function getTotalKeys(repo: RepoView): number {
   return repo.envFiles.reduce((sum, f) => sum + f.keys.length, 0);
 }
 
@@ -26,7 +26,7 @@ function getTotalKeys(repo: Repo): number {
 // Drift banner (shown at top of repo when any file is out of sync)
 // ---------------------------------------------------------------------------
 
-function DriftBanner({ repo }: { repo: Repo }) {
+function DriftBanner({ repo }: { repo: RepoView }) {
   const drifted = driftCount(repo);
   if (drifted === 0) {
     return null;
@@ -114,7 +114,7 @@ function SyncActions({
 }: {
   repoName: string;
   envFile: EnvFile;
-  onResolved: (repo: Repo) => void;
+  onResolved: (repo: RepoView) => void;
 }) {
   const [acting, setActing] = useState<"import" | "restore" | null>(null);
 
@@ -124,7 +124,7 @@ function SyncActions({
 
   const handleImport = async () => {
     setActing("import");
-    const updated = await rpc.importFile(repoName, envFile.absolutePath);
+    const updated = await rpc.importFile(repoName, envFile.relativePath);
     if (updated) {
       onResolved(updated);
     }
@@ -133,7 +133,7 @@ function SyncActions({
 
   const handleRestore = async () => {
     setActing("restore");
-    const updated = await rpc.restoreFile(repoName, envFile.absolutePath);
+    const updated = await rpc.restoreFile(repoName, envFile.relativePath);
     if (updated) {
       onResolved(updated);
     }
@@ -196,8 +196,8 @@ function EnvFileSection({
   repoName: string;
   envFile: EnvFile;
   defaultOpen: boolean;
-  onResolved: (repo: Repo) => void;
-  onSaved: (repo: Repo) => void;
+  onResolved: (repo: RepoView) => void;
+  onSaved: (repo: RepoView) => void;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [adding, setAdding] = useState(false);
@@ -255,7 +255,7 @@ function EnvFileSection({
               key={key.name}
               entry={key}
               repoName={repoName}
-              absolutePath={envFile.absolutePath}
+              relativePath={envFile.relativePath}
               onSaved={onSaved}
             />
           ))}
@@ -269,7 +269,7 @@ function EnvFileSection({
             mode="add"
             entry={{ name: "", value: "" }}
             repoName={repoName}
-            absolutePath={envFile.absolutePath}
+            relativePath={envFile.relativePath}
             onSaved={onSaved}
             onClose={() => setAdding(false)}
           />,
@@ -407,7 +407,7 @@ export function RepoDetail() {
   const repo = repos.find((r) => r.name === name);
   const [showDelete, setShowDelete] = useState(false);
 
-  const handleResolved = (updated: Repo) => {
+  const handleResolved = (updated: RepoView) => {
     updateRepo(updated);
   };
 
@@ -443,6 +443,12 @@ export function RepoDetail() {
         </div>
       </>
     );
+  }
+
+  // Unlinked repos have no root mapping on this machine; the detail view has
+  // nothing to show. Bounce to the dashboard where the locate flow lives.
+  if (isRepoUnlinked(repo)) {
+    return <Navigate to="/" replace />;
   }
 
   const totalKeys = getTotalKeys(repo);
@@ -492,7 +498,7 @@ export function RepoDetail() {
         <div className="space-y-6">
           {repo.envFiles.map((envFile) => (
             <EnvFileSection
-              key={envFile.absolutePath}
+              key={envFile.relativePath}
               repoName={repo.name}
               envFile={envFile}
               defaultOpen={repo.envFiles.length === 1}

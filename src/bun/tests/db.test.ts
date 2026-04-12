@@ -5,7 +5,7 @@ import { InMemoryDB } from "../db";
 function makeEnvFile(overrides: Partial<EnvFile> = {}): EnvFile {
   return {
     filename: ".env",
-    absolutePath: "/project/.env",
+    relativePath: ".env",
     rawContent: "KEY=val\n",
     keys: [{ name: "KEY", value: "val" }],
     syncStatus: "synced",
@@ -16,7 +16,6 @@ function makeEnvFile(overrides: Partial<EnvFile> = {}): EnvFile {
 function makeRepo(overrides: Partial<Repo> = {}): Repo {
   return {
     name: "my-project",
-    path: "/path/to/my-project",
     envFiles: [makeEnvFile()],
     ...overrides,
   };
@@ -42,8 +41,8 @@ describe("InMemoryDB CRUD", () => {
 
   test("getAll returns all repos", () => {
     const db = new InMemoryDB();
-    db.add(makeRepo({ name: "a", path: "/a" }));
-    db.add(makeRepo({ name: "b", path: "/b" }));
+    db.add(makeRepo({ name: "a" }));
+    db.add(makeRepo({ name: "b" }));
     expect(db.getAll().length).toBe(2);
   });
 
@@ -66,29 +65,10 @@ describe("InMemoryDB CRUD", () => {
 
   test("add overwrites existing repo with same name", () => {
     const db = new InMemoryDB();
-    db.add(makeRepo({ path: "/old" }));
-    db.add(makeRepo({ path: "/new" }));
-    expect(db.get("my-project")?.path).toBe("/new");
+    db.add(makeRepo({ envFiles: [makeEnvFile({ rawContent: "OLD=1\n" })] }));
+    db.add(makeRepo({ envFiles: [makeEnvFile({ rawContent: "NEW=1\n" })] }));
+    expect(db.get("my-project")?.envFiles[0].rawContent).toBe("NEW=1\n");
     expect(db.getAll().length).toBe(1);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// findByPath
-// ---------------------------------------------------------------------------
-
-describe("findByPath", () => {
-  test("finds repo by path", () => {
-    const db = new InMemoryDB();
-    db.add(makeRepo());
-    const found = db.findByPath("/path/to/my-project");
-    expect(found?.name).toBe("my-project");
-  });
-
-  test("returns null for unknown path", () => {
-    const db = new InMemoryDB();
-    db.add(makeRepo());
-    expect(db.findByPath("/unknown")).toBeNull();
   });
 });
 
@@ -101,7 +81,7 @@ describe("updateSyncStatus", () => {
     const db = new InMemoryDB();
     db.add(makeRepo());
 
-    db.updateSyncStatus("my-project", "/project/.env", "disk_changed");
+    db.updateSyncStatus("my-project", ".env", "disk_changed");
     const repo = db.get("my-project");
     expect(repo).not.toBeNull();
     expect(repo?.envFiles[0].syncStatus).toBe("disk_changed");
@@ -110,28 +90,28 @@ describe("updateSyncStatus", () => {
   test("does nothing for unknown repo", () => {
     const db = new InMemoryDB();
     // Should not throw
-    db.updateSyncStatus("nonexistent", "/path", "missing");
+    db.updateSyncStatus("nonexistent", ".env", "missing");
   });
 
-  test("does nothing for unknown file path", () => {
+  test("does nothing for unknown relative path", () => {
     const db = new InMemoryDB();
     db.add(makeRepo());
-    db.updateSyncStatus("my-project", "/unknown/.env", "disk_changed");
+    db.updateSyncStatus("my-project", "unknown/.env", "disk_changed");
     expect(db.get("my-project")?.envFiles[0].syncStatus).toBe("synced");
   });
 
   test("can set status to missing", () => {
     const db = new InMemoryDB();
     db.add(makeRepo());
-    db.updateSyncStatus("my-project", "/project/.env", "missing");
+    db.updateSyncStatus("my-project", ".env", "missing");
     expect(db.get("my-project")?.envFiles[0].syncStatus).toBe("missing");
   });
 
   test("can set status back to synced", () => {
     const db = new InMemoryDB();
     db.add(makeRepo());
-    db.updateSyncStatus("my-project", "/project/.env", "disk_changed");
-    db.updateSyncStatus("my-project", "/project/.env", "synced");
+    db.updateSyncStatus("my-project", ".env", "disk_changed");
+    db.updateSyncStatus("my-project", ".env", "synced");
     expect(db.get("my-project")?.envFiles[0].syncStatus).toBe("synced");
   });
 });
@@ -141,7 +121,7 @@ describe("updateSyncStatus", () => {
 // ---------------------------------------------------------------------------
 
 describe("updateEnvFile", () => {
-  test("replaces env file content by absolutePath", () => {
+  test("replaces env file content by relativePath", () => {
     const db = new InMemoryDB();
     db.add(makeRepo());
 
@@ -164,10 +144,10 @@ describe("updateEnvFile", () => {
     db.updateEnvFile("nonexistent", file);
   });
 
-  test("does nothing for unmatched absolutePath", () => {
+  test("does nothing for unmatched relativePath", () => {
     const db = new InMemoryDB();
     db.add(makeRepo());
-    const file = makeEnvFile({ absolutePath: "/other/.env" });
+    const file = makeEnvFile({ relativePath: "other/.env" });
     db.updateEnvFile("my-project", file);
     // Original file unchanged
     expect(db.get("my-project")?.envFiles[0].keys[0].name).toBe("KEY");
@@ -179,12 +159,12 @@ describe("updateEnvFile", () => {
       makeRepo({
         envFiles: [
           makeEnvFile({
-            absolutePath: "/project/.env",
+            relativePath: ".env",
             keys: [{ name: "A", value: "1" }],
           }),
           makeEnvFile({
             filename: ".env.local",
-            absolutePath: "/project/.env.local",
+            relativePath: ".env.local",
             keys: [{ name: "B", value: "2" }],
           }),
         ],
@@ -193,7 +173,7 @@ describe("updateEnvFile", () => {
 
     const updated = makeEnvFile({
       filename: ".env.local",
-      absolutePath: "/project/.env.local",
+      relativePath: ".env.local",
       keys: [{ name: "B", value: "updated" }],
     });
     db.updateEnvFile("my-project", updated);
@@ -210,18 +190,18 @@ describe("updateEnvFile", () => {
 // ---------------------------------------------------------------------------
 
 describe("getWatchPaths", () => {
-  test("returns absolute paths for all env files", () => {
+  test("returns relative paths for all env files", () => {
     const db = new InMemoryDB();
     db.add(
       makeRepo({
         envFiles: [
-          makeEnvFile({ absolutePath: "/project/.env" }),
-          makeEnvFile({ absolutePath: "/project/.env.local" }),
+          makeEnvFile({ relativePath: ".env" }),
+          makeEnvFile({ relativePath: ".env.local" }),
         ],
       }),
     );
     const paths = db.getWatchPaths("my-project");
-    expect(paths).toEqual(["/project/.env", "/project/.env.local"]);
+    expect(paths).toEqual([".env", ".env.local"]);
   });
 
   test("returns empty array for unknown repo", () => {
@@ -243,26 +223,26 @@ describe("getWatchPaths", () => {
 describe("toJSON / loadFromJSON", () => {
   test("round-trip preserves all repos", () => {
     const db1 = new InMemoryDB();
-    db1.add(makeRepo({ name: "a", path: "/a" }));
-    db1.add(makeRepo({ name: "b", path: "/b" }));
+    db1.add(makeRepo({ name: "a" }));
+    db1.add(makeRepo({ name: "b" }));
 
     const json = db1.toJSON();
 
     const db2 = new InMemoryDB();
     db2.loadFromJSON(json);
     expect(db2.getAll().length).toBe(2);
-    expect(db2.get("a")?.path).toBe("/a");
-    expect(db2.get("b")?.path).toBe("/b");
+    expect(db2.get("a")?.name).toBe("a");
+    expect(db2.get("b")?.name).toBe("b");
   });
 
   test("loadFromJSON clears existing data", () => {
     const db = new InMemoryDB();
-    db.add(makeRepo({ name: "old", path: "/old" }));
+    db.add(makeRepo({ name: "old" }));
 
-    db.loadFromJSON([makeRepo({ name: "new", path: "/new" })]);
+    db.loadFromJSON([makeRepo({ name: "new" })]);
 
     expect(db.get("old")).toBeNull();
-    expect(db.get("new")?.path).toBe("/new");
+    expect(db.get("new")?.name).toBe("new");
     expect(db.getAll().length).toBe(1);
   });
 
@@ -325,7 +305,7 @@ describe("addEnvFile", () => {
       "my-project",
       makeEnvFile({
         filename: ".env.local",
-        absolutePath: "/project/.env.local",
+        relativePath: ".env.local",
         rawContent: "LOCAL=true\n",
         keys: [{ name: "LOCAL", value: "true" }],
       }),
@@ -342,14 +322,14 @@ describe("addEnvFile", () => {
     expect(db.get("nonexistent")).toBeNull();
   });
 
-  test("no-op for duplicate absolutePath", () => {
+  test("no-op for duplicate relativePath", () => {
     const db = new InMemoryDB();
     db.add(makeRepo());
 
-    // Try adding a file with the same absolutePath as the existing one
+    // Try adding a file with the same relativePath as the existing one
     db.addEnvFile(
       "my-project",
-      makeEnvFile({ absolutePath: "/project/.env", rawContent: "DUPE=yes\n" }),
+      makeEnvFile({ relativePath: ".env", rawContent: "DUPE=yes\n" }),
     );
 
     const repo = db.get("my-project");

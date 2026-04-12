@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { basename, dirname, relative } from "node:path";
+import { basename, join } from "node:path";
 import {
   ApplicationMenu,
   BrowserView,
@@ -7,7 +7,7 @@ import {
   Updater,
   Utils,
 } from "electrobun/bun";
-import type { DotlockRPC } from "../shared/types";
+import type { DotlockRPC, Repo, RepoView } from "../shared/types";
 import {
   deletePassword,
   getAccentColor,
@@ -27,6 +27,7 @@ import {
   getRecentVaults,
   removeRecentVault,
 } from "./recentVaults";
+import { getRepoRoot, removeRepoRoot, setRepoRoot } from "./repoRoots";
 import { parseEnvFile, scanFolder } from "./scanner";
 import { VaultManager } from "./vault";
 import { fileWatcher } from "./watcher";
@@ -38,6 +39,36 @@ const vault = new VaultManager();
 
 // Wire the watcher to use the vault's db
 fileWatcher.setGetDB(() => vault.getDB());
+
+/**
+ * Attach this machine's rootPath to a Repo for RPC responses. `null` when
+ * the repo is unlinked on this machine (no entry in repoRoots.json).
+ */
+async function toRepoView(repo: Repo): Promise<RepoView> {
+  const vaultPath = vault.getVaultPath();
+  const rootPath = vaultPath ? await getRepoRoot(vaultPath, repo.name) : null;
+  return { ...repo, rootPath };
+}
+
+async function toRepoViewOrNull(repo: Repo | null): Promise<RepoView | null> {
+  if (!repo) {
+    return null;
+  }
+  return toRepoView(repo);
+}
+
+async function watchRepoIfLinked(repoName: string): Promise<void> {
+  const vaultPath = vault.getVaultPath();
+  if (!vaultPath) {
+    return;
+  }
+  const rootPath = await getRepoRoot(vaultPath, repoName);
+  if (!rootPath) {
+    return;
+  }
+  const relativePaths = vault.getDB().getWatchPaths(repoName);
+  fileWatcher.watchRepo(repoName, rootPath, relativePaths);
+}
 
 // Check if Vite dev server is running for HMR
 async function getMainViewUrl(): Promise<string> {
@@ -95,11 +126,10 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
             name: basename(path, ".dotlock"),
             lastOpened: new Date().toISOString(),
           });
-          // Re-establish file watchers for all repos in the vault
+          // Re-establish file watchers for linked repos only
           const db = vault.getDB();
           for (const repo of db.getAll()) {
-            const watchPaths = db.getWatchPaths(repo.name);
-            fileWatcher.watchRepo(repo.name, watchPaths);
+            await watchRepoIfLinked(repo.name);
           }
           rpc.send.vaultStateChanged({ state: "unlocked" });
           return true;
@@ -208,49 +238,117 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
 
         const envFiles = await scanFolder(folderPath);
         const name = basename(folderPath);
-        const repo = { name, path: folderPath, envFiles };
+        const repo: Repo = { name, envFiles };
         db.add(repo);
 
+        // Record this machine's root for this repo + vault
+        const vaultPath = vault.getVaultPath();
+        if (vaultPath) {
+          await setRepoRoot(vaultPath, name, folderPath);
+        }
+
         // Start watching the env files
-        const watchPaths = db.getWatchPaths(name);
-        fileWatcher.watchRepo(name, watchPaths);
+        await watchRepoIfLinked(name);
 
         await vault.save();
-        return repo;
+        return toRepoView(repo);
       },
 
-      getRepos: () => {
+      getRepos: async () => {
         if (vault.getState() !== "unlocked") {
           return [];
         }
-        return vault.getDB().getAll();
+        const repos = vault.getDB().getAll();
+        return Promise.all(repos.map((r) => toRepoView(r)));
       },
 
-      getRepo: ({ name }) => {
+      getRepo: async ({ name }) => {
         if (vault.getState() !== "unlocked") {
           return null;
         }
-        return vault.getDB().get(name);
+        return toRepoViewOrNull(vault.getDB().get(name));
       },
 
       removeRepo: async ({ name }) => {
         fileWatcher.unwatchRepo(name);
+        const vaultPath = vault.getVaultPath();
+        if (vaultPath) {
+          await removeRepoRoot(vaultPath, name);
+        }
         return removeRepoOp(vault, name);
       },
 
-      importFile: async ({ repoName, absolutePath }) =>
-        importFileOp(vault, repoName, absolutePath),
+      linkRepo: async ({ repoName, rootPath }) => {
+        if (vault.getState() !== "unlocked") {
+          return null;
+        }
+        const vaultPath = vault.getVaultPath();
+        if (!vaultPath) {
+          return null;
+        }
+        const repo = vault.getDB().get(repoName);
+        if (!repo) {
+          return null;
+        }
+        await setRepoRoot(vaultPath, repoName, rootPath);
+        await watchRepoIfLinked(repoName);
+        return toRepoView(repo);
+      },
 
-      restoreFile: async ({ repoName, absolutePath }) =>
-        restoreFileOp(vault, repoName, absolutePath),
-      editKey: async ({ repoName, absolutePath, keyName, value, provider }) =>
-        editKeyOp(vault, repoName, absolutePath, keyName, value, provider),
+      unlinkRepo: async ({ repoName }) => {
+        const vaultPath = vault.getVaultPath();
+        if (!vaultPath) {
+          return false;
+        }
+        fileWatcher.unwatchRepo(repoName);
+        await removeRepoRoot(vaultPath, repoName);
+        return true;
+      },
 
-      deleteKey: async ({ repoName, absolutePath, keyName }) =>
-        deleteKeyOp(vault, repoName, absolutePath, keyName),
+      pickRepoFolder: async () => {
+        const paths = await Utils.openFileDialog({
+          startingFolder: "~/",
+          allowedFileTypes: "*",
+          canChooseFiles: false,
+          canChooseDirectory: true,
+          allowsMultipleSelection: false,
+        });
+        return paths[0] || null;
+      },
 
-      addKey: async ({ repoName, absolutePath, keyName, value, provider }) =>
-        addKeyOp(vault, repoName, absolutePath, keyName, value, provider),
+      importFile: async ({ repoName, relativePath }) =>
+        toRepoViewOrNull(await importFileOp(vault, repoName, relativePath)),
+
+      restoreFile: async ({ repoName, relativePath }) =>
+        toRepoViewOrNull(await restoreFileOp(vault, repoName, relativePath)),
+      editKey: async ({ repoName, relativePath, keyName, value, provider }) =>
+        toRepoViewOrNull(
+          await editKeyOp(
+            vault,
+            repoName,
+            relativePath,
+            keyName,
+            value,
+            provider,
+          ),
+        ),
+
+      deleteKey: async ({ repoName, relativePath, keyName }) =>
+        toRepoViewOrNull(
+          await deleteKeyOp(vault, repoName, relativePath, keyName),
+        ),
+
+      addKey: async ({ repoName, relativePath, keyName, value, provider }) =>
+        toRepoViewOrNull(
+          await addKeyOp(
+            vault,
+            repoName,
+            relativePath,
+            keyName,
+            value,
+            provider,
+          ),
+        ),
 
       // ── Shell ──────────────────────────────────────────────────────
       openExternal: async ({ url }) => {
@@ -272,8 +370,16 @@ fileWatcher.setOnChange((repoName) => {
 });
 
 // Auto-discover new .env files appearing in watched repo directories
-fileWatcher.setOnNewEnvFile(async (repoName, absolutePath) => {
+fileWatcher.setOnNewEnvFile(async (repoName, relativePath) => {
   if (vault.getState() !== "unlocked") {
+    return false;
+  }
+  const vaultPath = vault.getVaultPath();
+  if (!vaultPath) {
+    return false;
+  }
+  const rootPath = await getRepoRoot(vaultPath, repoName);
+  if (!rootPath) {
     return false;
   }
   const db = vault.getDB();
@@ -283,19 +389,20 @@ fileWatcher.setOnNewEnvFile(async (repoName, absolutePath) => {
   }
 
   try {
+    const absolutePath = join(rootPath, relativePath);
     const content = await readFile(absolutePath, "utf-8");
     const keys = parseEnvFile(content);
     if (keys.length === 0) {
       return false;
     }
 
-    const relDir = relative(repo.path, dirname(absolutePath));
-    const name = basename(absolutePath);
+    const name = basename(relativePath);
+    const relDir = relativePath.slice(0, -name.length).replace(/\/$/, "");
     const filename = relDir ? `${name} (${relDir})` : name;
 
     db.addEnvFile(repoName, {
       filename,
-      absolutePath,
+      relativePath,
       rawContent: content,
       keys,
       syncStatus: "synced",

@@ -17,7 +17,7 @@ import { SidebarLink } from "./components/SidebarLink";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { VaultPicker } from "./components/VaultPicker";
 import * as rpc from "./rpc";
-import type { Repo, Theme, VaultState } from "./types";
+import type { RepoView, Theme, VaultState } from "./types";
 import { applyTheme } from "./utils";
 
 // ── App state machine ───────────────────────────────────────────────
@@ -37,12 +37,17 @@ type AppScreen =
 // ── Repo context (shared with Dashboard + RepoDetail) ───────────────
 
 type RepoContextType = {
-  repos: Repo[];
+  repos: RepoView[];
   loading: boolean;
   addRepo: () => Promise<void>;
   addingRepo: boolean;
-  updateRepo: (repo: Repo) => void;
+  updateRepo: (repo: RepoView) => void;
   deleteRepo: (name: string) => Promise<boolean>;
+  /**
+   * Prompt the user to locate a repo's root folder on this machine, then
+   * record the mapping. Returns the linked RepoView on success.
+   */
+  locateRepo: (name: string) => Promise<RepoView | null>;
 };
 
 const RepoContext = createContext<RepoContextType>({
@@ -52,6 +57,7 @@ const RepoContext = createContext<RepoContextType>({
   addingRepo: false,
   updateRepo: () => {},
   deleteRepo: async () => false,
+  locateRepo: async () => null,
 });
 
 export function useRepos() {
@@ -59,13 +65,18 @@ export function useRepos() {
 }
 
 /** Returns true if any env file in the repo has drift. */
-export function repoHasDrift(repo: Repo): boolean {
+export function repoHasDrift(repo: RepoView): boolean {
   return repo.envFiles.some((f) => f.syncStatus !== "synced");
 }
 
 /** Count of drifted files in a repo. */
-export function driftCount(repo: Repo): number {
+export function driftCount(repo: RepoView): number {
   return repo.envFiles.filter((f) => f.syncStatus !== "synced").length;
+}
+
+/** Repo has no local root mapping — needs to be "located on disk". */
+export function isRepoUnlinked(repo: RepoView): boolean {
+  return repo.rootPath === null;
 }
 
 // ── Unlocked App (sidebar + routes) ─────────────────────────────────
@@ -81,7 +92,7 @@ function UnlockedApp({
   onLock: () => void;
   vaultName: string;
 }) {
-  const [repos, setRepos] = useState<Repo[]>([]);
+  const [repos, setRepos] = useState<RepoView[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingRepo, setAddingRepo] = useState(false);
   const location = useLocation();
@@ -122,7 +133,7 @@ function UnlockedApp({
   };
 
   /** Immediately update a repo in local state (after import/restore). */
-  const updateRepo = useCallback((repo: Repo) => {
+  const updateRepo = useCallback((repo: RepoView) => {
     setRepos((prev) => prev.map((r) => (r.name === repo.name ? repo : r)));
   }, []);
 
@@ -134,6 +145,24 @@ function UnlockedApp({
     }
     return ok;
   }, []);
+
+  /** Prompt user to locate the repo on disk, record the mapping. */
+  const locateRepo = useCallback(
+    async (name: string): Promise<RepoView | null> => {
+      const folder = await rpc.pickRepoFolder();
+      if (!folder) {
+        return null;
+      }
+      const linked = await rpc.linkRepo(name, folder);
+      if (linked) {
+        setRepos((prev) =>
+          prev.map((r) => (r.name === linked.name ? linked : r)),
+        );
+      }
+      return linked;
+    },
+    [],
+  );
 
   // Derive providers from actual repo data
   const providers = useMemo(() => {
@@ -158,7 +187,15 @@ function UnlockedApp({
 
   return (
     <RepoContext.Provider
-      value={{ repos, loading, addRepo, addingRepo, updateRepo, deleteRepo }}
+      value={{
+        repos,
+        loading,
+        addRepo,
+        addingRepo,
+        updateRepo,
+        deleteRepo,
+        locateRepo,
+      }}
     >
       <div className="h-screen flex border-t border-gray-200/60 dark:border-transparent bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100">
         {/* Sidebar */}
@@ -190,15 +227,24 @@ function UnlockedApp({
                 </span>
               </div>
               <div className="space-y-0.5">
-                {repos.map((repo) => (
-                  <SidebarLink
-                    key={repo.name}
-                    to={`/repo/${repo.name}`}
-                    label={repo.name}
-                    active={activeRepo === repo.name}
-                    hasDrift={repoHasDrift(repo)}
-                  />
-                ))}
+                {repos.map((repo) =>
+                  isRepoUnlinked(repo) ? (
+                    <SidebarLink
+                      key={repo.name}
+                      label={repo.name}
+                      unlinked
+                      onClick={() => locateRepo(repo.name)}
+                    />
+                  ) : (
+                    <SidebarLink
+                      key={repo.name}
+                      to={`/repo/${repo.name}`}
+                      label={repo.name}
+                      active={activeRepo === repo.name}
+                      hasDrift={repoHasDrift(repo)}
+                    />
+                  ),
+                )}
               </div>
             </div>
 
