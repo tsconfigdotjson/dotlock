@@ -27,7 +27,13 @@ import {
   getRecentVaults,
   removeRecentVault,
 } from "./recentVaults";
-import { getRepoRoot, removeRepoRoot, setRepoRoot } from "./repoRoots";
+import {
+  clearVaultRoots,
+  getAllRepoRoots,
+  getRepoRoot,
+  removeRepoRoot,
+  setRepoRoot,
+} from "./repoRoots";
 import { parseEnvFile, scanFolder } from "./scanner";
 import { VaultManager } from "./vault";
 import { fileWatcher } from "./watcher";
@@ -159,6 +165,7 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
       removeRecentVault: async ({ path }) => {
         try {
           await removeRecentVault(path);
+          await clearVaultRoots(path);
           return true;
         } catch {
           return false;
@@ -259,7 +266,9 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
           return [];
         }
         const repos = vault.getDB().getAll();
-        return Promise.all(repos.map((r) => toRepoView(r)));
+        const vaultPath = vault.getVaultPath();
+        const roots = vaultPath ? await getAllRepoRoots(vaultPath) : {};
+        return repos.map((r) => ({ ...r, rootPath: roots[r.name] ?? null }));
       },
 
       getRepo: async ({ name }) => {
@@ -270,12 +279,16 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
       },
 
       removeRepo: async ({ name }) => {
+        const removed = await removeRepoOp(vault, name);
+        if (!removed) {
+          return false;
+        }
         fileWatcher.unwatchRepo(name);
         const vaultPath = vault.getVaultPath();
         if (vaultPath) {
           await removeRepoRoot(vaultPath, name);
         }
-        return removeRepoOp(vault, name);
+        return true;
       },
 
       linkRepo: async ({ repoName, rootPath }) => {
