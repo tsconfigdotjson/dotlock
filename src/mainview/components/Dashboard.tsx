@@ -201,14 +201,6 @@ export function Dashboard() {
   const { repos, loading, addRepo, addingRepo, locateRepo } = useRepos();
   const totalKeys = repos.reduce((sum, r) => sum + getTotalKeys(r), 0);
   const totalDrift = repos.reduce((sum, r) => sum + driftCount(r), 0);
-  const unlinkedCount = repos.filter(isRepoUnlinked).length;
-
-  const handleLocateFirstUnlinked = async () => {
-    const next = repos.find(isRepoUnlinked);
-    if (next) {
-      await locateRepo(next.name);
-    }
-  };
 
   return (
     <>
@@ -258,34 +250,6 @@ export function Dashboard() {
         <EmptyState onAdd={addRepo} loading={addingRepo} />
       ) : (
         <div className="flex-1 overflow-y-auto p-6">
-          {unlinkedCount > 0 && (
-            <button
-              type="button"
-              onClick={handleLocateFirstUnlinked}
-              className="w-full mb-4 flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-50 dark:bg-white/[0.04] border border-gray-200/80 dark:border-white/[0.08] hover:border-gray-300 dark:hover:border-white/[0.15] hover:bg-gray-100/70 dark:hover:bg-white/[0.06] transition-colors text-left"
-            >
-              <FolderSearchIcon
-                size={16}
-                className="text-gray-400 dark:text-gray-500 shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-medium text-gray-700 dark:text-gray-200">
-                  {unlinkedCount}{" "}
-                  {unlinkedCount === 1 ? "repo needs" : "repos need"} to be
-                  located on your machine
-                </p>
-                <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-0.5">
-                  Point dotlock at your local clone to start syncing.
-                </p>
-              </div>
-              <span
-                className="text-[12px] font-medium"
-                style={{ color: "var(--system-accent)" }}
-              >
-                Locate
-              </span>
-            </button>
-          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {repos.map((repo) =>
               isRepoUnlinked(repo) ? (
