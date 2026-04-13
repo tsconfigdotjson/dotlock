@@ -1,3 +1,4 @@
+import { statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
@@ -303,12 +304,22 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
         if (!repo) {
           return null;
         }
+        try {
+          if (!statSync(rootPath).isDirectory()) {
+            return null;
+          }
+        } catch {
+          return null;
+        }
         await setRepoRoot(vaultPath, repoName, rootPath);
         await watchRepoIfLinked(repoName);
         return toRepoView(repo);
       },
 
       unlinkRepo: async ({ repoName }) => {
+        if (vault.getState() !== "unlocked") {
+          return false;
+        }
         const vaultPath = vault.getVaultPath();
         if (!vaultPath) {
           return false;

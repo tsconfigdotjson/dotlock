@@ -8,7 +8,13 @@ import {
 } from "react";
 import { Link, Route, Routes, useLocation } from "react-router-dom";
 import { Dashboard } from "./components/Dashboard";
-import { FolderIcon, KeyIcon, LockIcon } from "./components/icons";
+import {
+  AlertTriangleIcon,
+  FolderIcon,
+  KeyIcon,
+  LockIcon,
+  XIcon,
+} from "./components/icons";
 import { Logo } from "./components/Logo";
 import { PasswordPrompt } from "./components/PasswordPrompt";
 import { ProviderDetail } from "./components/ProviderDetail";
@@ -48,6 +54,8 @@ type RepoContextType = {
    * record the mapping. Returns the linked RepoView on success.
    */
   locateRepo: (name: string) => Promise<RepoView | null>;
+  locateError: string | null;
+  dismissLocateError: () => void;
 };
 
 const RepoContext = createContext<RepoContextType>({
@@ -58,6 +66,8 @@ const RepoContext = createContext<RepoContextType>({
   updateRepo: () => {},
   deleteRepo: async () => false,
   locateRepo: async () => null,
+  locateError: null,
+  dismissLocateError: () => {},
 });
 
 export function useRepos() {
@@ -95,6 +105,7 @@ function UnlockedApp({
   const [repos, setRepos] = useState<RepoView[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingRepo, setAddingRepo] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
   const location = useLocation();
 
   // Initial load
@@ -151,18 +162,26 @@ function UnlockedApp({
     async (name: string): Promise<RepoView | null> => {
       const folder = await rpc.pickRepoFolder();
       if (!folder) {
+        // User cancelled the picker — nothing to signal.
         return null;
       }
       const linked = await rpc.linkRepo(name, folder);
-      if (linked) {
-        setRepos((prev) =>
-          prev.map((r) => (r.name === linked.name ? linked : r)),
+      if (!linked) {
+        setLocateError(
+          `Couldn't link "${name}" — that folder isn't a valid directory.`,
         );
+        return null;
       }
+      setLocateError(null);
+      setRepos((prev) =>
+        prev.map((r) => (r.name === linked.name ? linked : r)),
+      );
       return linked;
     },
     [],
   );
+
+  const dismissLocateError = useCallback(() => setLocateError(null), []);
 
   // Derive providers from actual repo data
   const providers = useMemo(() => {
@@ -195,6 +214,8 @@ function UnlockedApp({
         updateRepo,
         deleteRepo,
         locateRepo,
+        locateError,
+        dismissLocateError,
       }}
     >
       <div className="h-screen flex border-t border-gray-200/60 dark:border-transparent bg-white dark:bg-[#1a1a1a] text-gray-900 dark:text-gray-100">
@@ -298,6 +319,26 @@ function UnlockedApp({
           </Routes>
         </main>
       </div>
+
+      {locateError && (
+        <div className="fixed bottom-6 right-6 z-50 max-w-sm flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg dark:shadow-black/30 bg-white dark:bg-[#2a2a2a] border border-red-200/70 dark:border-red-500/30">
+          <AlertTriangleIcon
+            size={16}
+            className="text-red-500 dark:text-red-400 mt-0.5 shrink-0"
+          />
+          <p className="flex-1 text-[13px] text-gray-800 dark:text-gray-200 leading-relaxed">
+            {locateError}
+          </p>
+          <button
+            type="button"
+            onClick={dismissLocateError}
+            aria-label="Dismiss"
+            className="p-0.5 -mr-1 -mt-1 rounded text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+          >
+            <XIcon size={14} />
+          </button>
+        </div>
+      )}
     </RepoContext.Provider>
   );
 }
