@@ -27,6 +27,26 @@ export function setDataDir(dir: string | null): void {
   dataDirOverride = dir;
 }
 
+/**
+ * Serializes read-modify-write sequences so concurrent setRepoRoot /
+ * removeRepoRoot / clearVaultRoots calls can't clobber each other.
+ */
+let writeLock: Promise<void> = Promise.resolve();
+
+async function withWriteLock<T>(fn: () => Promise<T>): Promise<T> {
+  const prev = writeLock;
+  let release: (() => void) | undefined;
+  writeLock = new Promise<void>((r) => {
+    release = r;
+  });
+  try {
+    await prev;
+    return await fn();
+  } finally {
+    release?.();
+  }
+}
+
 function getDataDir(): string {
   const dir = dataDirOverride ?? join(homedir(), ".dotlock");
   if (!existsSync(dir)) {
@@ -72,12 +92,14 @@ export async function setRepoRoot(
   repoName: string,
   rootPath: string,
 ): Promise<void> {
-  const data = await readAll();
-  if (!data[vaultPath]) {
-    data[vaultPath] = {};
-  }
-  data[vaultPath][repoName] = rootPath;
-  await writeAll(data);
+  await withWriteLock(async () => {
+    const data = await readAll();
+    if (!data[vaultPath]) {
+      data[vaultPath] = {};
+    }
+    data[vaultPath][repoName] = rootPath;
+    await writeAll(data);
+  });
 }
 
 /** Remove the mapping for a single repo in a vault. */
@@ -85,15 +107,17 @@ export async function removeRepoRoot(
   vaultPath: string,
   repoName: string,
 ): Promise<void> {
-  const data = await readAll();
-  if (!data[vaultPath]) {
-    return;
-  }
-  delete data[vaultPath][repoName];
-  if (Object.keys(data[vaultPath]).length === 0) {
-    delete data[vaultPath];
-  }
-  await writeAll(data);
+  await withWriteLock(async () => {
+    const data = await readAll();
+    if (!data[vaultPath]) {
+      return;
+    }
+    delete data[vaultPath][repoName];
+    if (Object.keys(data[vaultPath]).length === 0) {
+      delete data[vaultPath];
+    }
+    await writeAll(data);
+  });
 }
 
 /** All repo→root mappings for a given vault. */
@@ -106,10 +130,12 @@ export async function getAllRepoRoots(
 
 /** Clear every mapping for a vault (used when vault is deleted). */
 export async function clearVaultRoots(vaultPath: string): Promise<void> {
-  const data = await readAll();
-  if (!data[vaultPath]) {
-    return;
-  }
-  delete data[vaultPath];
-  await writeAll(data);
+  await withWriteLock(async () => {
+    const data = await readAll();
+    if (!data[vaultPath]) {
+      return;
+    }
+    delete data[vaultPath];
+    await writeAll(data);
+  });
 }

@@ -320,8 +320,8 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
         if (!vaultPath) {
           return false;
         }
-        fileWatcher.unwatchRepo(repoName);
         await removeRepoRoot(vaultPath, repoName);
+        fileWatcher.unwatchRepo(repoName);
         return true;
       },
 

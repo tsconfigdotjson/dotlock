@@ -97,4 +97,17 @@ describe("repoRoots", () => {
     await setRepoRoot("/vault.dotlock", "my-repo", "/some/path");
     expect(existsSync(newDir)).toBe(true);
   });
+
+  test("concurrent setRepoRoot calls don't clobber each other", async () => {
+    const writes = Array.from({ length: 20 }, (_, i) =>
+      setRepoRoot("/vault.dotlock", `repo-${i}`, `/path/${i}`),
+    );
+    await Promise.all(writes);
+
+    const all = await getAllRepoRoots("/vault.dotlock");
+    expect(Object.keys(all).length).toBe(20);
+    for (let i = 0; i < 20; i++) {
+      expect(all[`repo-${i}`]).toBe(`/path/${i}`);
+    }
+  });
 });

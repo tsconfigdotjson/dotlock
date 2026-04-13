@@ -1,5 +1,5 @@
 import { statSync } from "node:fs";
-import { isAbsolute, join, relative, resolve } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
 import { getRepoRoot } from "./repoRoots";
 
 /**
@@ -36,5 +36,5 @@ export async function resolveEnvFilePath(
   if (rel.startsWith("..") || isAbsolute(rel)) {
     return null;
   }
-  return join(root, relativePath);
+  return absolute;
 }

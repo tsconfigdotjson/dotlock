@@ -114,6 +114,6 @@ describe("resolveEnvFilePath", () => {
 
     // "sub/../.env" resolves to root/.env — legitimately inside the root.
     const result = await resolveEnvFilePath(vaultPath, repoName, "sub/../.env");
-    expect(result).toBe(join(root, "sub/../.env"));
+    expect(result).toBe(join(root, ".env"));
   });
 });
