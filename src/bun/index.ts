@@ -1,4 +1,3 @@
-import { statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
@@ -23,6 +22,7 @@ import {
   removeRepo as removeRepoOp,
   restoreFile as restoreFileOp,
 } from "./operations";
+import { isValidRepoRoot } from "./paths";
 import {
   addRecentVault,
   getRecentVaults,
@@ -304,11 +304,7 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
         if (!repo) {
           return null;
         }
-        try {
-          if (!statSync(rootPath).isDirectory()) {
-            return null;
-          }
-        } catch {
+        if (!isValidRepoRoot(rootPath)) {
           return null;
         }
         await setRepoRoot(vaultPath, repoName, rootPath);

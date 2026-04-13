@@ -1,5 +1,18 @@
+import { statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { getRepoRoot } from "./repoRoots";
+
+/**
+ * Returns true if rootPath is an existing, accessible directory that can be
+ * used as a repo's local root.
+ */
+export function isValidRepoRoot(rootPath: string): boolean {
+  try {
+    return statSync(rootPath).isDirectory();
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Resolve a repo-relative env file path to an absolute path on this machine.

@@ -54,6 +54,8 @@ type RepoContextType = {
    * record the mapping. Returns the linked RepoView on success.
    */
   locateRepo: (name: string) => Promise<RepoView | null>;
+  /** Clear the local mapping for a repo; repo goes back to unlinked state. */
+  unlinkRepo: (name: string) => Promise<boolean>;
   locateError: string | null;
   dismissLocateError: () => void;
 };
@@ -66,6 +68,7 @@ const RepoContext = createContext<RepoContextType>({
   updateRepo: () => {},
   deleteRepo: async () => false,
   locateRepo: async () => null,
+  unlinkRepo: async () => false,
   locateError: null,
   dismissLocateError: () => {},
 });
@@ -183,6 +186,17 @@ function UnlockedApp({
 
   const dismissLocateError = useCallback(() => setLocateError(null), []);
 
+  /** Clear the local mapping for a repo on this machine. */
+  const unlinkRepo = useCallback(async (name: string): Promise<boolean> => {
+    const ok = await rpc.unlinkRepo(name);
+    if (ok) {
+      setRepos((prev) =>
+        prev.map((r) => (r.name === name ? { ...r, rootPath: null } : r)),
+      );
+    }
+    return ok;
+  }, []);
+
   // Derive providers from actual repo data
   const providers = useMemo(() => {
     const map = new Map<string, number>();
@@ -214,6 +228,7 @@ function UnlockedApp({
         updateRepo,
         deleteRepo,
         locateRepo,
+        unlinkRepo,
         locateError,
         dismissLocateError,
       }}

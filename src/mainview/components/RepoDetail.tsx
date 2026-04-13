@@ -12,6 +12,8 @@ import {
   ChevronLeftIcon,
   FileIcon,
   FileWarningIcon,
+  FolderIcon,
+  FolderSearchIcon,
   PlusIcon,
   TrashIcon,
   XIcon,
@@ -400,6 +402,58 @@ function DeleteRepoModal({
 // Repo detail page
 // ---------------------------------------------------------------------------
 
+/**
+ * Inline strip showing where the repo is linked on disk, plus actions to
+ * change the folder or unlink. Rendered below the header on linked repos.
+ */
+function LocationStrip({ repo }: { repo: RepoView }) {
+  const { locateRepo, unlinkRepo } = useRepos();
+  if (!repo.rootPath) {
+    return null;
+  }
+
+  const handleChange = () => {
+    void locateRepo(repo.name);
+  };
+
+  const handleUnlink = () => {
+    void unlinkRepo(repo.name);
+  };
+
+  return (
+    <div className="mx-6 mt-4 px-3 py-2 rounded-md bg-gray-50 dark:bg-white/[0.03] border border-gray-200/60 dark:border-white/[0.06] flex items-center gap-2">
+      <FolderIcon
+        size={13}
+        className="text-gray-400 dark:text-gray-500 shrink-0"
+      />
+      <span
+        className="text-[12px] font-mono text-gray-500 dark:text-gray-400 flex-1 truncate"
+        style={{ direction: "rtl", textAlign: "left" }}
+        title={repo.rootPath}
+      >
+        {repo.rootPath}
+      </span>
+      <button
+        type="button"
+        onClick={handleChange}
+        className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+        title="Point to a different folder"
+      >
+        <FolderSearchIcon size={11} />
+        Change
+      </button>
+      <button
+        type="button"
+        onClick={handleUnlink}
+        className="px-2 py-1 rounded text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
+        title="Remove the local folder mapping (repo stays in the vault)"
+      >
+        Unlink
+      </button>
+    </div>
+  );
+}
+
 export function RepoDetail() {
   const { name } = useParams<{ name: string }>();
   const navigate = useNavigate();
@@ -490,7 +544,8 @@ export function RepoDetail() {
         </button>
       </header>
 
-      {/* Drift banner */}
+      {/* Location strip + drift banner */}
+      <LocationStrip repo={repo} />
       <DriftBanner repo={repo} />
 
       {/* Key list */}
