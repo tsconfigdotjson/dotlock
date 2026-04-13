@@ -1,4 +1,9 @@
-import type { DotlockRPC, Repo, VaultMeta, VaultState } from "../shared/types";
+import type {
+  DotlockRPC,
+  RepoView,
+  VaultMeta,
+  VaultState,
+} from "../shared/types";
 
 // Derive the webview→bun request proxy from the DotlockRPC schema.
 // electrobun doesn't export RPCRequestsProxy, so we map it ourselves.
@@ -153,15 +158,15 @@ export function getAccentColor(): Promise<string | null> {
 
 // ── Repo operations ─────────────────────────────────────────────────
 
-export function selectFolder(): Promise<Repo | null> {
+export function selectFolder(): Promise<RepoView | null> {
   return rpcCall((r) => r.request.selectFolder({}), null);
 }
 
-export function getRepos(): Promise<Repo[]> {
+export function getRepos(): Promise<RepoView[]> {
   return rpcCall((r) => r.request.getRepos({}), []);
 }
 
-export function getRepo(name: string): Promise<Repo | null> {
+export function getRepo(name: string): Promise<RepoView | null> {
   return rpcCall((r) => r.request.getRepo({ name }), null);
 }
 
@@ -169,58 +174,69 @@ export function removeRepo(name: string): Promise<boolean> {
   return rpcCall((r) => r.request.removeRepo({ name }), false);
 }
 
+export function linkRepo(
+  repoName: string,
+  rootPath: string,
+): Promise<RepoView | null> {
+  return rpcCall((r) => r.request.linkRepo({ repoName, rootPath }), null);
+}
+
+export function pickRepoFolder(): Promise<string | null> {
+  return rpcCall((r) => r.request.pickRepoFolder({}), null);
+}
+
 export function importFile(
   repoName: string,
-  absolutePath: string,
-): Promise<Repo | null> {
-  return rpcCall((r) => r.request.importFile({ repoName, absolutePath }), null);
+  relativePath: string,
+): Promise<RepoView | null> {
+  return rpcCall((r) => r.request.importFile({ repoName, relativePath }), null);
 }
 
 export function restoreFile(
   repoName: string,
-  absolutePath: string,
-): Promise<Repo | null> {
+  relativePath: string,
+): Promise<RepoView | null> {
   return rpcCall(
-    (r) => r.request.restoreFile({ repoName, absolutePath }),
+    (r) => r.request.restoreFile({ repoName, relativePath }),
     null,
   );
 }
 
 export function editKey(
   repoName: string,
-  absolutePath: string,
+  relativePath: string,
   keyName: string,
   value: string,
   provider: string,
-): Promise<Repo | null> {
+): Promise<RepoView | null> {
   return rpcCall(
     (r) =>
-      r.request.editKey({ repoName, absolutePath, keyName, value, provider }),
+      r.request.editKey({ repoName, relativePath, keyName, value, provider }),
     null,
   );
 }
 
 export function deleteKey(
   repoName: string,
-  absolutePath: string,
+  relativePath: string,
   keyName: string,
-): Promise<Repo | null> {
+): Promise<RepoView | null> {
   return rpcCall(
-    (r) => r.request.deleteKey({ repoName, absolutePath, keyName }),
+    (r) => r.request.deleteKey({ repoName, relativePath, keyName }),
     null,
   );
 }
 
 export function addKey(
   repoName: string,
-  absolutePath: string,
+  relativePath: string,
   keyName: string,
   value: string,
   provider: string,
-): Promise<Repo | null> {
+): Promise<RepoView | null> {
   return rpcCall(
     (r) =>
-      r.request.addKey({ repoName, absolutePath, keyName, value, provider }),
+      r.request.addKey({ repoName, relativePath, keyName, value, provider }),
     null,
   );
 }

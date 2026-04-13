@@ -1,12 +1,25 @@
 import { readFile, writeFile } from "node:fs/promises";
 import type { Repo } from "../shared/types";
+import { resolveEnvFilePath } from "./paths";
 import { parseEnvFile, rebuildRawContent } from "./scanner";
 import type { VaultManager } from "./vault";
+
+async function resolvePath(
+  vault: VaultManager,
+  repoName: string,
+  relativePath: string,
+): Promise<string | null> {
+  const vaultPath = vault.getVaultPath();
+  if (!vaultPath) {
+    return null;
+  }
+  return resolveEnvFilePath(vaultPath, repoName, relativePath);
+}
 
 export async function editKey(
   vault: VaultManager,
   repoName: string,
-  absolutePath: string,
+  relativePath: string,
   keyName: string,
   value: string,
   provider: string,
@@ -20,13 +33,18 @@ export async function editKey(
     return null;
   }
 
-  const envFile = repo.envFiles.find((f) => f.absolutePath === absolutePath);
+  const envFile = repo.envFiles.find((f) => f.relativePath === relativePath);
   if (!envFile) {
     return null;
   }
 
   const key = envFile.keys.find((k) => k.name === keyName);
   if (!key) {
+    return null;
+  }
+
+  const absolutePath = await resolvePath(vault, repoName, relativePath);
+  if (!absolutePath) {
     return null;
   }
 
@@ -46,7 +64,7 @@ export async function editKey(
 export async function deleteKey(
   vault: VaultManager,
   repoName: string,
-  absolutePath: string,
+  relativePath: string,
   keyName: string,
 ): Promise<Repo | null> {
   if (vault.getState() !== "unlocked") {
@@ -58,8 +76,13 @@ export async function deleteKey(
     return null;
   }
 
-  const envFile = repo.envFiles.find((f) => f.absolutePath === absolutePath);
+  const envFile = repo.envFiles.find((f) => f.relativePath === relativePath);
   if (!envFile) {
+    return null;
+  }
+
+  const absolutePath = await resolvePath(vault, repoName, relativePath);
+  if (!absolutePath) {
     return null;
   }
 
@@ -73,7 +96,7 @@ export async function deleteKey(
 export async function addKey(
   vault: VaultManager,
   repoName: string,
-  absolutePath: string,
+  relativePath: string,
   keyName: string,
   value: string,
   provider: string,
@@ -87,12 +110,17 @@ export async function addKey(
     return null;
   }
 
-  const envFile = repo.envFiles.find((f) => f.absolutePath === absolutePath);
+  const envFile = repo.envFiles.find((f) => f.relativePath === relativePath);
   if (!envFile) {
     return null;
   }
 
   if (envFile.keys.some((k) => k.name === keyName)) {
+    return null;
+  }
+
+  const absolutePath = await resolvePath(vault, repoName, relativePath);
+  if (!absolutePath) {
     return null;
   }
 
@@ -125,7 +153,7 @@ export async function removeRepo(
 export async function importFile(
   vault: VaultManager,
   repoName: string,
-  absolutePath: string,
+  relativePath: string,
 ): Promise<Repo | null> {
   if (vault.getState() !== "unlocked") {
     return null;
@@ -136,8 +164,13 @@ export async function importFile(
     return null;
   }
 
-  const envFile = repo.envFiles.find((f) => f.absolutePath === absolutePath);
+  const envFile = repo.envFiles.find((f) => f.relativePath === relativePath);
   if (!envFile) {
+    return null;
+  }
+
+  const absolutePath = await resolvePath(vault, repoName, relativePath);
+  if (!absolutePath) {
     return null;
   }
 
@@ -160,7 +193,7 @@ export async function importFile(
 export async function restoreFile(
   vault: VaultManager,
   repoName: string,
-  absolutePath: string,
+  relativePath: string,
 ): Promise<Repo | null> {
   if (vault.getState() !== "unlocked") {
     return null;
@@ -171,14 +204,19 @@ export async function restoreFile(
     return null;
   }
 
-  const envFile = repo.envFiles.find((f) => f.absolutePath === absolutePath);
+  const envFile = repo.envFiles.find((f) => f.relativePath === relativePath);
   if (!envFile) {
+    return null;
+  }
+
+  const absolutePath = await resolvePath(vault, repoName, relativePath);
+  if (!absolutePath) {
     return null;
   }
 
   try {
     await writeFile(absolutePath, envFile.rawContent, "utf-8");
-    db.updateSyncStatus(repoName, absolutePath, "synced");
+    db.updateSyncStatus(repoName, relativePath, "synced");
     await vault.save();
     return db.get(repoName);
   } catch {

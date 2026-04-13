@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRepos } from "../App";
-import type { KeyEntry, Repo } from "../types";
+import type { KeyEntry, RepoView } from "../types";
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
@@ -14,7 +14,7 @@ import { KeyRow } from "./KeyComponents";
 type ProviderKey = {
   entry: KeyEntry;
   repoName: string;
-  absolutePath: string;
+  relativePath: string;
   envFilename: string;
 };
 
@@ -38,13 +38,13 @@ export function ProviderDetail() {
               result.set(repo.name, new Map());
             }
             const repoMap = result.get(repo.name) as Map<string, ProviderKey[]>;
-            if (!repoMap.has(envFile.absolutePath)) {
-              repoMap.set(envFile.absolutePath, []);
+            if (!repoMap.has(envFile.relativePath)) {
+              repoMap.set(envFile.relativePath, []);
             }
-            (repoMap.get(envFile.absolutePath) as ProviderKey[]).push({
+            (repoMap.get(envFile.relativePath) as ProviderKey[]).push({
               entry: key,
               repoName: repo.name,
-              absolutePath: envFile.absolutePath,
+              relativePath: envFile.relativePath,
               envFilename: envFile.filename,
             });
           }
@@ -70,7 +70,7 @@ export function ProviderDetail() {
     ? provider.charAt(0).toUpperCase() + provider.slice(1)
     : "";
 
-  const handleSaved = (repo: Repo) => {
+  const handleSaved = (repo: RepoView) => {
     updateRepo(repo);
   };
 
@@ -131,9 +131,9 @@ export function ProviderDetail() {
         <div className="space-y-6">
           {Array.from(grouped.entries()).map(([repoName, envFileMap]) => (
             <div key={repoName}>
-              {Array.from(envFileMap.entries()).map(([absolutePath, keys]) => (
+              {Array.from(envFileMap.entries()).map(([relativePath, keys]) => (
                 <ProviderEnvSection
-                  key={absolutePath}
+                  key={relativePath}
                   repoName={repoName}
                   envFilename={keys[0].envFilename}
                   keys={keys}
@@ -164,7 +164,7 @@ function ProviderEnvSection({
   repoName: string;
   envFilename: string;
   keys: ProviderKey[];
-  onSaved: (repo: Repo) => void;
+  onSaved: (repo: RepoView) => void;
 }) {
   const [open, setOpen] = useState(true);
 
@@ -202,7 +202,7 @@ function ProviderEnvSection({
               key={k.entry.name}
               entry={k.entry}
               repoName={k.repoName}
-              absolutePath={k.absolutePath}
+              relativePath={k.relativePath}
               onSaved={onSaved}
             />
           ))}

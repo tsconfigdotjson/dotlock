@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import * as rpc from "../rpc";
-import type { KeyEntry, Repo } from "../types";
+import type { KeyEntry, RepoView } from "../types";
 import { timeAgo } from "../utils";
 import {
   CheckIcon,
@@ -52,15 +52,15 @@ export function KeyModal({
   mode,
   entry,
   repoName,
-  absolutePath,
+  relativePath,
   onSaved,
   onClose,
 }: {
   mode: "edit" | "add";
   entry: KeyEntry;
   repoName: string;
-  absolutePath: string;
-  onSaved: (repo: Repo) => void;
+  relativePath: string;
+  onSaved: (repo: RepoView) => void;
   onClose: () => void;
 }) {
   const [name, setName] = useState(entry.name);
@@ -90,10 +90,10 @@ export function KeyModal({
     setSaving(true);
     const updated =
       mode === "edit"
-        ? await rpc.editKey(repoName, absolutePath, entry.name, value, provider)
+        ? await rpc.editKey(repoName, relativePath, entry.name, value, provider)
         : await rpc.addKey(
             repoName,
-            absolutePath,
+            relativePath,
             name.trim(),
             value,
             provider,
@@ -107,7 +107,7 @@ export function KeyModal({
 
   const handleDelete = async () => {
     setSaving(true);
-    const updated = await rpc.deleteKey(repoName, absolutePath, entry.name);
+    const updated = await rpc.deleteKey(repoName, relativePath, entry.name);
     setSaving(false);
     if (updated) {
       onSaved(updated);
@@ -288,13 +288,13 @@ export function KeyModal({
 export function KeyRow({
   entry,
   repoName,
-  absolutePath,
+  relativePath,
   onSaved,
 }: {
   entry: KeyEntry;
   repoName: string;
-  absolutePath: string;
-  onSaved: (repo: Repo) => void;
+  relativePath: string;
+  onSaved: (repo: RepoView) => void;
 }) {
   const [visible, setVisible] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -311,7 +311,7 @@ export function KeyRow({
     setShowProviderMenu(false);
     const updated = await rpc.editKey(
       repoName,
-      absolutePath,
+      relativePath,
       entry.name,
       entry.value,
       p,
@@ -458,7 +458,7 @@ export function KeyRow({
             mode="edit"
             entry={entry}
             repoName={repoName}
-            absolutePath={absolutePath}
+            relativePath={relativePath}
             onSaved={onSaved}
             onClose={() => setEditing(false)}
           />,

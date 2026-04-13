@@ -32,26 +32,17 @@ export class InMemoryDB {
     return this.repos.delete(name);
   }
 
-  findByPath(path: string): Repo | null {
-    for (const repo of this.repos.values()) {
-      if (repo.path === path) {
-        return repo;
-      }
-    }
-    return null;
-  }
-
   /** Update sync status for a specific env file within a repo. */
   updateSyncStatus(
     repoName: string,
-    absolutePath: string,
+    relativePath: string,
     status: SyncStatus,
   ): void {
     const repo = this.repos.get(repoName);
     if (!repo) {
       return;
     }
-    const file = repo.envFiles.find((f) => f.absolutePath === absolutePath);
+    const file = repo.envFiles.find((f) => f.relativePath === relativePath);
     if (file) {
       file.syncStatus = status;
     }
@@ -64,7 +55,7 @@ export class InMemoryDB {
       return;
     }
     const idx = repo.envFiles.findIndex(
-      (f) => f.absolutePath === updated.absolutePath,
+      (f) => f.relativePath === updated.relativePath,
     );
     if (idx !== -1) {
       repo.envFiles[idx] = updated;
@@ -77,19 +68,19 @@ export class InMemoryDB {
     if (!repo) {
       return;
     }
-    if (repo.envFiles.some((f) => f.absolutePath === envFile.absolutePath)) {
+    if (repo.envFiles.some((f) => f.relativePath === envFile.relativePath)) {
       return;
     }
     repo.envFiles.push(envFile);
   }
 
-  /** Get all absolute paths for a repo's env files. */
+  /** Get all relative paths for a repo's env files. */
   getWatchPaths(repoName: string): string[] {
     const repo = this.repos.get(repoName);
     if (!repo) {
       return [];
     }
-    return repo.envFiles.map((f) => f.absolutePath);
+    return repo.envFiles.map((f) => f.relativePath);
   }
 }
 

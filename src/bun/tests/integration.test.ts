@@ -8,7 +8,7 @@ import {
 } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, dirname, join, relative } from "node:path";
+import { basename, join } from "node:path";
 import type { InMemoryDB } from "../db";
 import {
   addKey,
@@ -24,6 +24,12 @@ import {
   removeRecentVault,
   setDataDir,
 } from "../recentVaults";
+import {
+  getRepoRoot,
+  removeRepoRoot,
+  setRepoRoot,
+  setDataDir as setRepoRootsDataDir,
+} from "../repoRoots";
 import { parseEnvFile, scanFolder } from "../scanner";
 import { VaultManager } from "../vault";
 import { fileWatcher } from "../watcher";
@@ -52,6 +58,30 @@ function nextProject(): string {
   return dir;
 }
 
+/**
+ * Register a repo with the vault DB AND record its local root mapping so
+ * that operations can resolve paths. Mirrors what the selectFolder handler
+ * does in src/bun/index.ts.
+ */
+async function registerRepo(
+  repoName: string,
+  rootPath: string,
+  envFiles: Awaited<ReturnType<typeof scanFolder>>,
+): Promise<void> {
+  vault.getDB().add({ name: repoName, envFiles });
+  await setRepoRoot(vaultFile, repoName, rootPath);
+}
+
+/** Start watchers for a repo, resolving relative paths via the root mapping. */
+async function watchRepo(repoName: string): Promise<void> {
+  const rootPath = await getRepoRoot(vaultFile, repoName);
+  if (!rootPath) {
+    return;
+  }
+  const relativePaths = vault.getDB().getWatchPaths(repoName);
+  fileWatcher.watchRepo(repoName, rootPath, relativePaths);
+}
+
 beforeEach(async () => {
   counter++;
   mkdirSync(TEST_DIR, { recursive: true });
@@ -63,7 +93,9 @@ beforeEach(async () => {
   fileWatcher.setOnChange(() => {});
   fileWatcher.setDebounceMs(TEST_DEBOUNCE_MS);
 
-  setDataDir(join(TEST_DIR, "dotlock-data"));
+  const dataDir = join(TEST_DIR, "dotlock-data");
+  setDataDir(dataDir);
+  setRepoRootsDataDir(dataDir);
 });
 
 afterEach(() => {
@@ -72,6 +104,7 @@ afterEach(() => {
   fileWatcher.setOnChange(null as unknown as (repoName: string) => void);
   fileWatcher.setOnNewEnvFile(null);
   setDataDir(null);
+  setRepoRootsDataDir(null);
   if (existsSync(TEST_DIR)) {
     rmSync(TEST_DIR, { recursive: true, force: true });
   }
@@ -86,12 +119,7 @@ describe("scan folder → store in vault → reopen", () => {
     writeFileSync(join(projectDir, ".env.local"), "LOCAL_OVERRIDE=true\n");
 
     const envFiles = await scanFolder(projectDir);
-    const db = vault.getDB();
-    db.add({
-      name: basename(projectDir),
-      path: projectDir,
-      envFiles,
-    });
+    await registerRepo(basename(projectDir), projectDir, envFiles);
     await vault.save();
 
     // Reopen from disk with a fresh VaultManager
@@ -140,11 +168,11 @@ describe("scan → edit/add/delete keys → verify disk", () => {
 
     const envFiles = await scanFolder(projectDir);
     const repoName = basename(projectDir);
-    vault.getDB().add({ name: repoName, path: projectDir, envFiles });
+    await registerRepo(repoName, projectDir, envFiles);
     await vault.save();
 
     const envPath = join(projectDir, ".env");
-    await editKey(vault, repoName, envPath, "SECRET", "rotated", "AWS");
+    await editKey(vault, repoName, ".env", "SECRET", "rotated", "AWS");
 
     // Vault has the update
     const key = vault
@@ -165,19 +193,19 @@ describe("scan → edit/add/delete keys → verify disk", () => {
 
     const envFiles = await scanFolder(projectDir);
     const repoName = basename(projectDir);
-    vault.getDB().add({ name: repoName, path: projectDir, envFiles });
+    await registerRepo(repoName, projectDir, envFiles);
     await vault.save();
 
     const envPath = join(projectDir, ".env");
 
     // Add a key
-    await addKey(vault, repoName, envPath, "B", "2", "Stripe");
+    await addKey(vault, repoName, ".env", "B", "2", "Stripe");
     let keys = vault.getDB().get(repoName)?.envFiles[0].keys;
     expect(keys?.length).toBe(2);
     expect(readFileSync(envPath, "utf-8")).toContain("B=2");
 
     // Delete it
-    await deleteKey(vault, repoName, envPath, "B");
+    await deleteKey(vault, repoName, ".env", "B");
     keys = vault.getDB().get(repoName)?.envFiles[0].keys;
     expect(keys?.length).toBe(1);
     expect(keys?.[0].name).toBe("A");
@@ -200,15 +228,14 @@ describe("watcher detects drift → import/restore resolves it", () => {
 
     const envFiles = await scanFolder(projectDir);
     const repoName = basename(projectDir);
-    vault.getDB().add({ name: repoName, path: projectDir, envFiles });
+    await registerRepo(repoName, projectDir, envFiles);
     await vault.save();
 
     const notifications: string[] = [];
     fileWatcher.setOnChange((name) => notifications.push(name));
 
     // Start watching
-    const watchPaths = vault.getDB().getWatchPaths(repoName);
-    fileWatcher.watchRepo(repoName, watchPaths);
+    await watchRepo(repoName);
     await Bun.sleep(FSEVENTS_SETTLE_MS);
 
     // Simulate external edit (another tool changes the file)
@@ -221,7 +248,7 @@ describe("watcher detects drift → import/restore resolves it", () => {
     expect(notifications).toContain(repoName);
 
     // Import resolves the drift
-    const result = await importFile(vault, repoName, envPath);
+    const result = await importFile(vault, repoName, ".env");
     expect(result?.envFiles[0].syncStatus).toBe("synced");
     expect(result?.envFiles[0].keys[0].value).toBe("external_edit");
   });
@@ -233,10 +260,10 @@ describe("watcher detects drift → import/restore resolves it", () => {
 
     const envFiles = await scanFolder(projectDir);
     const repoName = basename(projectDir);
-    vault.getDB().add({ name: repoName, path: projectDir, envFiles });
+    await registerRepo(repoName, projectDir, envFiles);
     await vault.save();
 
-    fileWatcher.watchRepo(repoName, [envPath]);
+    await watchRepo(repoName);
     await Bun.sleep(FSEVENTS_SETTLE_MS);
 
     // Delete the file externally
@@ -246,7 +273,7 @@ describe("watcher detects drift → import/restore resolves it", () => {
     expect(vault.getDB().get(repoName)?.envFiles[0].syncStatus).toBe("missing");
 
     // Restore from vault
-    await restoreFile(vault, repoName, envPath);
+    await restoreFile(vault, repoName, ".env");
 
     expect(existsSync(envPath)).toBe(true);
     expect(readFileSync(envPath, "utf-8")).toContain("KEY=precious");
@@ -260,14 +287,14 @@ describe("watcher detects drift → import/restore resolves it", () => {
 
     const envFiles = await scanFolder(projectDir);
     const repoName = basename(projectDir);
-    vault.getDB().add({ name: repoName, path: projectDir, envFiles });
+    await registerRepo(repoName, projectDir, envFiles);
     await vault.save();
 
-    fileWatcher.watchRepo(repoName, [envPath]);
+    await watchRepo(repoName);
     await Bun.sleep(FSEVENTS_SETTLE_MS);
 
     // Edit through operations (updates both vault + disk atomically)
-    await editKey(vault, repoName, envPath, "KEY", "after", "");
+    await editKey(vault, repoName, ".env", "KEY", "after", "");
     await Bun.sleep(DEBOUNCE_WAIT_MS);
 
     // Watcher should see this as synced, not drift
@@ -286,11 +313,11 @@ describe("lock stops watchers, reopen re-establishes them", () => {
 
     const envFiles = await scanFolder(projectDir);
     const repoName = basename(projectDir);
-    vault.getDB().add({ name: repoName, path: projectDir, envFiles });
+    await registerRepo(repoName, projectDir, envFiles);
     await vault.save();
 
     // Start watching
-    fileWatcher.watchRepo(repoName, [envPath]);
+    await watchRepo(repoName);
     await Bun.sleep(FSEVENTS_SETTLE_MS);
 
     // Lock: kills all watchers (mirrors index.ts lockVault handler)
@@ -309,8 +336,7 @@ describe("lock stops watchers, reopen re-establishes them", () => {
     fileWatcher.setGetDB(() => vault.getDB());
     const db = vault.getDB();
     for (const repo of db.getAll()) {
-      const watchPaths = db.getWatchPaths(repo.name);
-      fileWatcher.watchRepo(repo.name, watchPaths);
+      await watchRepo(repo.name);
     }
     await Bun.sleep(FSEVENTS_SETTLE_MS);
 
@@ -332,14 +358,14 @@ describe("removeRepo stops its watcher", () => {
 
     const envFiles = await scanFolder(projectDir);
     const repoName = basename(projectDir);
-    vault.getDB().add({ name: repoName, path: projectDir, envFiles });
+    await registerRepo(repoName, projectDir, envFiles);
     await vault.save();
 
     const notifications: string[] = [];
     fileWatcher.setOnChange((name) => notifications.push(name));
 
     // Watch, then remove (mirrors index.ts removeRepo handler)
-    fileWatcher.watchRepo(repoName, [envPath]);
+    await watchRepo(repoName);
     await Bun.sleep(FSEVENTS_SETTLE_MS);
 
     fileWatcher.unwatchRepo(repoName);
@@ -371,15 +397,15 @@ describe("multiple repos watched simultaneously", () => {
     const nameA = basename(dirA);
     const nameB = basename(dirB);
 
-    vault.getDB().add({ name: nameA, path: dirA, envFiles: filesA });
-    vault.getDB().add({ name: nameB, path: dirB, envFiles: filesB });
+    await registerRepo(nameA, dirA, filesA);
+    await registerRepo(nameB, dirB, filesB);
     await vault.save();
 
     const driftedRepos: string[] = [];
     fileWatcher.setOnChange((name) => driftedRepos.push(name));
 
-    fileWatcher.watchRepo(nameA, [envA]);
-    fileWatcher.watchRepo(nameB, [envB]);
+    await watchRepo(nameA);
+    await watchRepo(nameB);
     await Bun.sleep(FSEVENTS_SETTLE_MS);
 
     // Only change repo A
@@ -484,16 +510,16 @@ describe("full end-to-end lifecycle", () => {
     // 2. Scan and store in vault
     const envFiles = await scanFolder(projectDir);
     const repoName = basename(projectDir);
-    vault.getDB().add({ name: repoName, path: projectDir, envFiles });
+    await registerRepo(repoName, projectDir, envFiles);
     await vault.save();
 
     expect(vault.getDB().get(repoName)?.envFiles.length).toBe(2);
 
     // 3. Edit a key
-    await editKey(vault, repoName, envPath, "DB_PASS", "new-secret", "RDS");
+    await editKey(vault, repoName, ".env", "DB_PASS", "new-secret", "RDS");
 
     // 4. Add a new key
-    await addKey(vault, repoName, envPath, "DB_PORT", "5432", "");
+    await addKey(vault, repoName, ".env", "DB_PORT", "5432", "");
 
     // 5. Verify disk
     const onDisk = readFileSync(envPath, "utf-8");
@@ -519,11 +545,83 @@ describe("full end-to-end lifecycle", () => {
 
     // 7. Simulate disk divergence and restore
     writeFileSync(envPath, "DB_HOST=hacked\n");
-    await restoreFile(v2, repoName, envPath);
+    await restoreFile(v2, repoName, ".env");
 
     const restored = readFileSync(envPath, "utf-8");
     expect(restored).toContain("DB_PASS=new-secret");
     expect(restored).not.toContain("hacked");
+  });
+});
+
+// ── portability: Alice's vault opened by Bob ─────────────────────────
+
+describe("portable vault — Alice shares with Bob", () => {
+  test("Bob opens Alice's vault, repo starts unlinked, relinks to his clone, all ops work", async () => {
+    // Alice: set up vault with a repo
+    const aliceDir = nextProject();
+    const aliceEnvPath = join(aliceDir, ".env");
+    writeFileSync(aliceEnvPath, "SHARED_KEY=team_secret\nDB=postgres\n");
+
+    const envFiles = await scanFolder(aliceDir);
+    const repoName = basename(aliceDir);
+    await registerRepo(repoName, aliceDir, envFiles);
+    await vault.save();
+
+    // Confirm Alice's vault is linked on her machine
+    expect(await getRepoRoot(vaultFile, repoName)).toBe(aliceDir);
+
+    // Simulate sharing: Bob receives the vault file, but his machine has no
+    // mapping yet.
+    await removeRepoRoot(vaultFile, repoName);
+
+    // Bob opens the vault (reuses the same VaultManager for simplicity)
+    vault.lock();
+    await vault.openVault(vaultFile, "test-password");
+
+    // Repo exists but is unlinked
+    const repoBefore = vault.getDB().get(repoName);
+    expect(repoBefore).not.toBeNull();
+    expect(repoBefore?.envFiles.length).toBe(1);
+    expect(await getRepoRoot(vaultFile, repoName)).toBeNull();
+
+    // Operations fail until he links
+    const preLinkEdit = await editKey(
+      vault,
+      repoName,
+      ".env",
+      "SHARED_KEY",
+      "hacked",
+      "",
+    );
+    expect(preLinkEdit).toBeNull();
+
+    // Bob creates his own clone of the project at a different location
+    const bobDir = join(TEST_DIR, "bobs-clone");
+    mkdirSync(bobDir, { recursive: true });
+    const bobEnvPath = join(bobDir, ".env");
+    writeFileSync(bobEnvPath, "SHARED_KEY=team_secret\nDB=postgres\n");
+
+    // Bob links the repo to his local clone
+    await setRepoRoot(vaultFile, repoName, bobDir);
+
+    // Now operations should resolve to Bob's disk
+    const edit = await editKey(
+      vault,
+      repoName,
+      ".env",
+      "SHARED_KEY",
+      "bobs_rotation",
+      "",
+    );
+    expect(edit).not.toBeNull();
+    expect(readFileSync(bobEnvPath, "utf-8")).toContain(
+      "SHARED_KEY=bobs_rotation",
+    );
+
+    // Alice's original file is untouched by Bob's operations
+    expect(readFileSync(aliceEnvPath, "utf-8")).toContain(
+      "SHARED_KEY=team_secret",
+    );
   });
 });
 
@@ -533,9 +631,13 @@ describe("full end-to-end lifecycle", () => {
 async function newEnvFileHandler(
   v: VaultManager,
   repoName: string,
-  absolutePath: string,
+  relativePath: string,
 ): Promise<boolean> {
   if (v.getState() !== "unlocked") {
+    return false;
+  }
+  const rootPath = await getRepoRoot(vaultFile, repoName);
+  if (!rootPath) {
     return false;
   }
   const db = v.getDB();
@@ -545,19 +647,20 @@ async function newEnvFileHandler(
   }
 
   try {
+    const absolutePath = join(rootPath, relativePath);
     const content = await readFile(absolutePath, "utf-8");
     const keys = parseEnvFile(content);
     if (keys.length === 0) {
       return false;
     }
 
-    const relDir = relative(repo.path, dirname(absolutePath));
-    const name = basename(absolutePath);
+    const name = basename(relativePath);
+    const relDir = relativePath.slice(0, -name.length).replace(/\/$/, "");
     const filename = relDir ? `${name} (${relDir})` : name;
 
     db.addEnvFile(repoName, {
       filename,
-      absolutePath,
+      relativePath,
       rawContent: content,
       keys,
       syncStatus: "synced",
@@ -578,18 +681,17 @@ describe("new env file auto-discovery in watched repo", () => {
 
     const envFiles = await scanFolder(projectDir);
     const repoName = basename(projectDir);
-    vault.getDB().add({ name: repoName, path: projectDir, envFiles });
+    await registerRepo(repoName, projectDir, envFiles);
     await vault.save();
 
-    fileWatcher.setOnNewEnvFile((name, path) =>
-      newEnvFileHandler(vault, name, path),
+    fileWatcher.setOnNewEnvFile((name, relativePath) =>
+      newEnvFileHandler(vault, name, relativePath),
     );
 
     const notifications: string[] = [];
     fileWatcher.setOnChange((name) => notifications.push(name));
 
-    const watchPaths = vault.getDB().getWatchPaths(repoName);
-    fileWatcher.watchRepo(repoName, watchPaths);
+    await watchRepo(repoName);
     await Bun.sleep(FSEVENTS_SETTLE_MS);
 
     // Create a new .env file in the project
@@ -628,15 +730,14 @@ describe("new env file auto-discovery in watched repo", () => {
 
     const envFiles = await scanFolder(projectDir);
     const repoName = basename(projectDir);
-    vault.getDB().add({ name: repoName, path: projectDir, envFiles });
+    await registerRepo(repoName, projectDir, envFiles);
     await vault.save();
 
-    fileWatcher.setOnNewEnvFile((name, path) =>
-      newEnvFileHandler(vault, name, path),
+    fileWatcher.setOnNewEnvFile((name, relativePath) =>
+      newEnvFileHandler(vault, name, relativePath),
     );
 
-    const watchPaths = vault.getDB().getWatchPaths(repoName);
-    fileWatcher.watchRepo(repoName, watchPaths);
+    await watchRepo(repoName);
     await Bun.sleep(FSEVENTS_SETTLE_MS);
 
     // Create an empty .env file (comment only — no valid keys)
@@ -654,15 +755,14 @@ describe("new env file auto-discovery in watched repo", () => {
 
     const envFiles = await scanFolder(projectDir);
     const repoName = basename(projectDir);
-    vault.getDB().add({ name: repoName, path: projectDir, envFiles });
+    await registerRepo(repoName, projectDir, envFiles);
     await vault.save();
 
-    fileWatcher.setOnNewEnvFile((name, path) =>
-      newEnvFileHandler(vault, name, path),
+    fileWatcher.setOnNewEnvFile((name, relativePath) =>
+      newEnvFileHandler(vault, name, relativePath),
     );
 
-    const watchPaths = vault.getDB().getWatchPaths(repoName);
-    fileWatcher.watchRepo(repoName, watchPaths);
+    await watchRepo(repoName);
     await Bun.sleep(FSEVENTS_SETTLE_MS);
 
     // Create new file — auto-discovered
@@ -679,13 +779,13 @@ describe("new env file auto-discovery in watched repo", () => {
     const localEnv = vault
       .getDB()
       .get(repoName)
-      ?.envFiles.find((f) => f.absolutePath === newEnvPath);
+      ?.envFiles.find((f) => f.relativePath === ".env.local");
     expect(localEnv?.syncStatus).toBe("disk_changed");
 
     // Import resolves the drift
-    const result = await importFile(vault, repoName, newEnvPath);
+    const result = await importFile(vault, repoName, ".env.local");
     expect(
-      result?.envFiles.find((f) => f.absolutePath === newEnvPath)?.keys[0]
+      result?.envFiles.find((f) => f.relativePath === ".env.local")?.keys[0]
         .value,
     ).toBe("externally_changed");
   });

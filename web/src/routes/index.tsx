@@ -183,6 +183,12 @@ function Nav() {
             SYSTEM
           </a>
           <a
+            href="#shared"
+            className="text-sm font-semibold hover:text-cobalt transition-colors duration-300 ease-linear hidden md:block"
+          >
+            SHARED
+          </a>
+          <a
             href="#verify"
             className="text-sm font-semibold hover:text-cobalt transition-colors duration-300 ease-linear hidden md:block"
           >
@@ -224,8 +230,8 @@ function Hero() {
           <div className="max-w-[400px]">
             <p className="text-lg text-deep-gray leading-relaxed">
               dotlock manages and backs up every .env file across all your
-              projects. Edit keys, track changes, and restore files&nbsp;&mdash;
-              all from a single encrypted vault on your Mac.
+              projects. One encrypted vault&nbsp;&mdash; keep it personal, or
+              commit it to your repo so your whole team shares the same secrets.
             </p>
             <p className="text-base text-deep-gray mt-4 flex items-start gap-2">
               <img
@@ -571,6 +577,69 @@ function System() {
   );
 }
 
+const sharedSteps = [
+  {
+    index: "01",
+    title: "COMMIT THE VAULT",
+    description:
+      "Check the encrypted .dotlock file into your repo alongside your code. One file, AES-256-GCM encrypted - safe to push to origin.",
+  },
+  {
+    index: "02",
+    title: "SHARE THE PASSWORD",
+    description:
+      "Drop the vault password into 1Password, Bitwarden, or wherever your team already keeps shared credentials. That's the only secret that lives outside the repo.",
+  },
+  {
+    index: "03",
+    title: "CLONE & UNLOCK",
+    description:
+      "A new teammate runs git clone, opens the vault, points it at their local checkout. Every .env file across every project - instantly in sync.",
+  },
+];
+
+function Shared() {
+  return (
+    <section id="shared" className="border-t border-divider">
+      <div className="grid grid-cols-1 lg:grid-cols-12">
+        <div className="lg:col-span-3 lg:border-r border-divider px-6 py-8 lg:px-8 lg:py-16">
+          <SidebarLabel>SHARED</SidebarLabel>
+        </div>
+        <div className="lg:col-span-9 px-6 py-12 lg:px-12 lg:py-16">
+          <h2 className="text-[clamp(3rem,6vw,7rem)] font-bold leading-[0.9] tracking-[-0.03em] mb-8">
+            SHIP SECRETS
+            <br />
+            <span className="text-cobalt">WITH YOUR CODE.</span>
+          </h2>
+          <p className="text-lg text-deep-gray leading-relaxed max-w-2xl mb-12">
+            Your vault is portable. Commit it to your repo, share the password
+            with your team, and every developer gets the same encrypted .env
+            files&nbsp;&mdash; no secret manager, no SaaS, no more Slack
+            messages asking "what's the STRIPE_KEY again?"
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 border-t border-l border-divider">
+            {sharedSteps.map((s) => (
+              <div
+                key={s.index}
+                className="border-b border-r border-divider p-6 lg:p-8 hover:bg-white/20 transition-colors duration-300 ease-linear"
+              >
+                <span className="font-mono text-sm text-muted block mb-4">
+                  {s.index}
+                </span>
+                <h3 className="text-lg font-bold mb-3">{s.title}</h3>
+                <p className="text-sm text-deep-gray leading-relaxed">
+                  {s.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function WhyDifferent() {
   return (
     <section className="border-t border-divider">
@@ -717,6 +786,7 @@ function Index() {
       <Hero />
       <Screenshots />
       <System />
+      <Shared />
       <WhyDifferent />
       <Verify />
       <Access />

@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
-import { driftCount, repoHasDrift, useRepos } from "../App";
-import type { Repo } from "../types";
+import { driftCount, isRepoUnlinked, repoHasDrift, useRepos } from "../App";
+import type { RepoView } from "../types";
 import { getGreeting } from "../utils";
 import {
   AlertTriangleIcon,
   FileIcon,
   FolderIcon,
+  FolderSearchIcon,
   LoaderIcon,
   LockIcon,
   MoonIcon,
@@ -29,13 +30,52 @@ function Greeting({ children }: { children?: React.ReactNode }) {
   );
 }
 
-function getTotalKeys(repo: Repo): number {
+function getTotalKeys(repo: RepoView): number {
   return repo.envFiles.reduce((sum, f) => sum + f.keys.length, 0);
 }
 
 const CARD_MAX_HEIGHT = 160;
 
-function ProjectCard({ repo }: { repo: Repo }) {
+function UnlinkedProjectCard({
+  repo,
+  onLocate,
+}: {
+  repo: RepoView;
+  onLocate: () => void;
+}) {
+  const totalKeys = getTotalKeys(repo);
+  const totalFiles = repo.envFiles.length;
+
+  return (
+    <button
+      type="button"
+      onClick={onLocate}
+      className="group flex flex-col justify-start text-left bg-white dark:bg-white/[0.02] border border-dashed border-gray-300 dark:border-white/[0.12] rounded-xl p-0 overflow-hidden hover:border-gray-400/70 dark:hover:border-white/[0.22] hover:bg-gray-50/50 dark:hover:bg-white/[0.04] transition-colors"
+    >
+      <div className="px-4 py-3 border-b border-gray-100 dark:border-white/[0.06]">
+        <div className="flex items-center gap-2">
+          <FolderIcon size={16} className="text-gray-400 dark:text-gray-500" />
+          <span className="font-medium text-sm text-gray-500 dark:text-gray-400">
+            {repo.name}
+          </span>
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-white/[0.06] text-gray-500 dark:text-gray-400 text-[10px] font-medium">
+            Unlinked
+          </span>
+          <span className="ml-auto text-xs text-gray-400 dark:text-gray-500 tabular-nums">
+            {totalKeys} keys &middot; {totalFiles}{" "}
+            {totalFiles === 1 ? "file" : "files"}
+          </span>
+        </div>
+      </div>
+      <div className="px-4 py-5 flex items-center gap-2 text-[13px] text-gray-500 dark:text-gray-400">
+        <FolderSearchIcon size={14} />
+        <span>Locate on disk…</span>
+      </div>
+    </button>
+  );
+}
+
+function ProjectCard({ repo }: { repo: RepoView }) {
   const totalKeys = getTotalKeys(repo);
   const totalFiles = repo.envFiles.length;
   const estimatedHeight =
@@ -158,7 +198,7 @@ function EmptyState({
 }
 
 export function Dashboard() {
-  const { repos, loading, addRepo, addingRepo } = useRepos();
+  const { repos, loading, addRepo, addingRepo, locateRepo } = useRepos();
   const totalKeys = repos.reduce((sum, r) => sum + getTotalKeys(r), 0);
   const totalDrift = repos.reduce((sum, r) => sum + driftCount(r), 0);
 
@@ -211,9 +251,17 @@ export function Dashboard() {
       ) : (
         <div className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {repos.map((repo) => (
-              <ProjectCard key={repo.name} repo={repo} />
-            ))}
+            {repos.map((repo) =>
+              isRepoUnlinked(repo) ? (
+                <UnlinkedProjectCard
+                  key={repo.name}
+                  repo={repo}
+                  onLocate={() => locateRepo(repo.name)}
+                />
+              ) : (
+                <ProjectCard key={repo.name} repo={repo} />
+              ),
+            )}
           </div>
         </div>
       )}

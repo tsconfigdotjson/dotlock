@@ -12,7 +12,7 @@ export type SyncStatus = "synced" | "disk_changed" | "missing";
 
 export type EnvFile = {
   filename: string;
-  absolutePath: string;
+  relativePath: string;
   rawContent: string;
   keys: KeyEntry[];
   syncStatus: SyncStatus;
@@ -20,8 +20,16 @@ export type EnvFile = {
 
 export type Repo = {
   name: string;
-  path: string;
   envFiles: EnvFile[];
+};
+
+/**
+ * A Repo enriched with the current machine's local root path. `rootPath` is
+ * derived at response time from the repo-roots mapping, never persisted in
+ * the vault. `null` means the repo is unlinked on this machine.
+ */
+export type RepoView = Repo & {
+  rootPath: string | null;
 };
 
 // ── Vault types ─────────────────────────────────────────────────────
@@ -106,45 +114,56 @@ export type DotlockRPC = {
       };
 
       // Existing repo operations
-      selectFolder: { params: Record<string, never>; response: Repo | null };
-      getRepos: { params: Record<string, never>; response: Repo[] };
-      getRepo: { params: { name: string }; response: Repo | null };
+      selectFolder: {
+        params: Record<string, never>;
+        response: RepoView | null;
+      };
+      getRepos: { params: Record<string, never>; response: RepoView[] };
+      getRepo: { params: { name: string }; response: RepoView | null };
       removeRepo: { params: { name: string }; response: boolean };
+      linkRepo: {
+        params: { repoName: string; rootPath: string };
+        response: RepoView | null;
+      };
+      pickRepoFolder: {
+        params: Record<string, never>;
+        response: string | null;
+      };
       importFile: {
-        params: { repoName: string; absolutePath: string };
-        response: Repo | null;
+        params: { repoName: string; relativePath: string };
+        response: RepoView | null;
       };
       restoreFile: {
-        params: { repoName: string; absolutePath: string };
-        response: Repo | null;
+        params: { repoName: string; relativePath: string };
+        response: RepoView | null;
       };
       editKey: {
         params: {
           repoName: string;
-          absolutePath: string;
+          relativePath: string;
           keyName: string;
           value: string;
           provider: string;
         };
-        response: Repo | null;
+        response: RepoView | null;
       };
       deleteKey: {
         params: {
           repoName: string;
-          absolutePath: string;
+          relativePath: string;
           keyName: string;
         };
-        response: Repo | null;
+        response: RepoView | null;
       };
       addKey: {
         params: {
           repoName: string;
-          absolutePath: string;
+          relativePath: string;
           keyName: string;
           value: string;
           provider: string;
         };
-        response: Repo | null;
+        response: RepoView | null;
       };
 
       // Shell

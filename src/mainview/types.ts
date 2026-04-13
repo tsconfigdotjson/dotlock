@@ -2,6 +2,7 @@ export type {
   EnvFile,
   KeyEntry,
   Repo,
+  RepoView,
   SyncStatus,
   VaultMeta,
   VaultState,

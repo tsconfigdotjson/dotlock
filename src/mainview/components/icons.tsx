@@ -18,6 +18,7 @@ export {
   Fingerprint as FingerprintIcon,
   Folder as FolderIcon,
   FolderOpen as FolderOpenIcon,
+  FolderSearch as FolderSearchIcon,
   Heart as HeartIcon,
   Infinity as InfinityIcon,
   KeyRound as KeyIcon,

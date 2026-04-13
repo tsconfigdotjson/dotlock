@@ -16,6 +16,7 @@ import {
   removeRepo,
   restoreFile,
 } from "../operations";
+import { setDataDir, setRepoRoot } from "../repoRoots";
 import { VaultManager } from "../vault";
 
 const TEST_DIR = join(tmpdir(), `dotlock-ops-tests-${Date.now()}`);
@@ -35,19 +36,21 @@ beforeEach(async () => {
   vaultFile = join(TEST_DIR, `vault-${counter}-${Date.now()}.dotlock`);
   vault = new VaultManager();
   await vault.createVault(vaultFile, "test-password");
+  setDataDir(join(TEST_DIR, "dotlock-data"));
 });
 
 afterEach(() => {
+  setDataDir(null);
   if (existsSync(TEST_DIR)) {
     rmSync(TEST_DIR, { recursive: true });
   }
 });
 
 /** Helper: set up a repo with one .env file on disk and in the vault. */
-function setupRepo(
+async function setupRepo(
   repoName: string,
   envContent: string,
-): { projectDir: string; envPath: string } {
+): Promise<{ projectDir: string; envPath: string }> {
   const projectDir = nextDir();
   mkdirSync(projectDir, { recursive: true });
   const envPath = join(projectDir, ".env");
@@ -55,11 +58,10 @@ function setupRepo(
 
   vault.getDB().add({
     name: repoName,
-    path: projectDir,
     envFiles: [
       {
         filename: ".env",
-        absolutePath: envPath,
+        relativePath: ".env",
         rawContent: envContent,
         keys: envContent
           .split("\n")
@@ -73,6 +75,8 @@ function setupRepo(
     ],
   });
 
+  await setRepoRoot(vaultFile, repoName, projectDir);
+
   return { projectDir, envPath };
 }
 
@@ -82,12 +86,12 @@ function setupRepo(
 
 describe("editKey", () => {
   test("updates the value in the vault", async () => {
-    const { envPath } = setupRepo("proj", "API_KEY=old_value\n");
+    await setupRepo("proj", "API_KEY=old_value\n");
 
     const result = await editKey(
       vault,
       "proj",
-      envPath,
+      ".env",
       "API_KEY",
       "new_value",
       "",
@@ -99,60 +103,53 @@ describe("editKey", () => {
   });
 
   test("writes updated value to disk", async () => {
-    const { envPath } = setupRepo("proj", "API_KEY=old_value\n");
+    const { envPath } = await setupRepo("proj", "API_KEY=old_value\n");
 
-    await editKey(vault, "proj", envPath, "API_KEY", "new_value", "");
+    await editKey(vault, "proj", ".env", "API_KEY", "new_value", "");
 
     const onDisk = readFileSync(envPath, "utf-8");
     expect(onDisk).toContain("API_KEY=new_value");
   });
 
   test("sets lastRotated when value changes", async () => {
-    const { envPath } = setupRepo("proj", "KEY=before\n");
+    await setupRepo("proj", "KEY=before\n");
 
-    const result = await editKey(vault, "proj", envPath, "KEY", "after", "");
+    const result = await editKey(vault, "proj", ".env", "KEY", "after", "");
     const key = result?.envFiles[0].keys.find((k) => k.name === "KEY");
     const today = new Date().toISOString().split("T")[0];
     expect(key?.lastRotated).toBe(today);
   });
 
   test("does not set lastRotated when only provider changes", async () => {
-    const { envPath } = setupRepo("proj", "KEY=same\n");
+    await setupRepo("proj", "KEY=same\n");
 
-    const result = await editKey(vault, "proj", envPath, "KEY", "same", "AWS");
+    const result = await editKey(vault, "proj", ".env", "KEY", "same", "AWS");
     const key = result?.envFiles[0].keys.find((k) => k.name === "KEY");
     expect(key?.lastRotated).toBeUndefined();
   });
 
   test("updates provider", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
+    await setupRepo("proj", "KEY=val\n");
 
-    const result = await editKey(
-      vault,
-      "proj",
-      envPath,
-      "KEY",
-      "val",
-      "Stripe",
-    );
+    const result = await editKey(vault, "proj", ".env", "KEY", "val", "Stripe");
     const key = result?.envFiles[0].keys.find((k) => k.name === "KEY");
     expect(key?.provider).toBe("Stripe");
   });
 
   test("clears provider when empty string", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
+    await setupRepo("proj", "KEY=val\n");
 
     // First set a provider
-    await editKey(vault, "proj", envPath, "KEY", "val", "AWS");
+    await editKey(vault, "proj", ".env", "KEY", "val", "AWS");
     // Then clear it
-    const result = await editKey(vault, "proj", envPath, "KEY", "val", "");
+    const result = await editKey(vault, "proj", ".env", "KEY", "val", "");
     const key = result?.envFiles[0].keys.find((k) => k.name === "KEY");
     expect(key?.provider).toBeUndefined();
   });
 
   test("persists through vault reopen", async () => {
-    const { envPath } = setupRepo("proj", "KEY=original\n");
-    await editKey(vault, "proj", envPath, "KEY", "edited", "Vercel");
+    await setupRepo("proj", "KEY=original\n");
+    await editKey(vault, "proj", ".env", "KEY", "edited", "Vercel");
 
     // Reopen vault from disk
     const v2 = new VaultManager();
@@ -163,22 +160,22 @@ describe("editKey", () => {
   });
 
   test("returns null for nonexistent repo", async () => {
-    const result = await editKey(vault, "nope", "/fake/.env", "K", "v", "");
+    const result = await editKey(vault, "nope", ".env", "K", "v", "");
     expect(result).toBeNull();
   });
 
   test("returns null for nonexistent key", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
-    const result = await editKey(vault, "proj", envPath, "MISSING", "v", "");
+    await setupRepo("proj", "KEY=val\n");
+    const result = await editKey(vault, "proj", ".env", "MISSING", "v", "");
     expect(result).toBeNull();
   });
 
   test("returns null for nonexistent env file path", async () => {
-    setupRepo("proj", "KEY=val\n");
+    await setupRepo("proj", "KEY=val\n");
     const result = await editKey(
       vault,
       "proj",
-      "/nonexistent/.env",
+      "nonexistent.env",
       "KEY",
       "v",
       "",
@@ -186,10 +183,20 @@ describe("editKey", () => {
     expect(result).toBeNull();
   });
 
-  test("does not modify other keys", async () => {
-    const { envPath } = setupRepo("proj", "A=1\nB=2\n");
+  test("returns null when repo is unlinked", async () => {
+    await setupRepo("proj", "KEY=val\n");
+    // Simulate unlink by clearing the root mapping
+    const { removeRepoRoot } = await import("../repoRoots");
+    await removeRepoRoot(vaultFile, "proj");
 
-    await editKey(vault, "proj", envPath, "A", "changed", "");
+    const result = await editKey(vault, "proj", ".env", "KEY", "new", "");
+    expect(result).toBeNull();
+  });
+
+  test("does not modify other keys", async () => {
+    await setupRepo("proj", "A=1\nB=2\n");
+
+    await editKey(vault, "proj", ".env", "A", "changed", "");
 
     const repo = vault.getDB().get("proj");
     expect(repo).not.toBeNull();
@@ -197,9 +204,9 @@ describe("editKey", () => {
   });
 
   test("disk file contains all keys after editing one", async () => {
-    const { envPath } = setupRepo("proj", "A=1\nB=2\nC=3\n");
+    const { envPath } = await setupRepo("proj", "A=1\nB=2\nC=3\n");
 
-    await editKey(vault, "proj", envPath, "B", "updated", "");
+    await editKey(vault, "proj", ".env", "B", "updated", "");
 
     const onDisk = readFileSync(envPath, "utf-8");
     expect(onDisk).toContain("A=1");
@@ -214,18 +221,18 @@ describe("editKey", () => {
 
 describe("deleteKey", () => {
   test("removes the key from the vault", async () => {
-    const { envPath } = setupRepo("proj", "A=1\nB=2\n");
+    await setupRepo("proj", "A=1\nB=2\n");
 
-    const result = await deleteKey(vault, "proj", envPath, "A");
+    const result = await deleteKey(vault, "proj", ".env", "A");
     expect(result).not.toBeNull();
     expect(result?.envFiles[0].keys.length).toBe(1);
     expect(result?.envFiles[0].keys[0].name).toBe("B");
   });
 
   test("removes the key from the disk file", async () => {
-    const { envPath } = setupRepo("proj", "A=1\nB=2\n");
+    const { envPath } = await setupRepo("proj", "A=1\nB=2\n");
 
-    await deleteKey(vault, "proj", envPath, "A");
+    await deleteKey(vault, "proj", ".env", "A");
 
     const onDisk = readFileSync(envPath, "utf-8");
     expect(onDisk).not.toContain("A=1");
@@ -233,15 +240,15 @@ describe("deleteKey", () => {
   });
 
   test("deleting last key leaves empty keys array", async () => {
-    const { envPath } = setupRepo("proj", "ONLY=val\n");
+    await setupRepo("proj", "ONLY=val\n");
 
-    const result = await deleteKey(vault, "proj", envPath, "ONLY");
+    const result = await deleteKey(vault, "proj", ".env", "ONLY");
     expect(result?.envFiles[0].keys.length).toBe(0);
   });
 
   test("persists through vault reopen", async () => {
-    const { envPath } = setupRepo("proj", "A=1\nB=2\n");
-    await deleteKey(vault, "proj", envPath, "A");
+    await setupRepo("proj", "A=1\nB=2\n");
+    await deleteKey(vault, "proj", ".env", "A");
 
     const v2 = new VaultManager();
     await v2.openVault(vaultFile, "test-password");
@@ -251,19 +258,19 @@ describe("deleteKey", () => {
   });
 
   test("returns null for nonexistent repo", async () => {
-    const result = await deleteKey(vault, "nope", "/fake/.env", "K");
+    const result = await deleteKey(vault, "nope", ".env", "K");
     expect(result).toBeNull();
   });
 
   test("returns null for nonexistent env file path", async () => {
-    setupRepo("proj", "KEY=val\n");
-    const result = await deleteKey(vault, "proj", "/nonexistent/.env", "KEY");
+    await setupRepo("proj", "KEY=val\n");
+    const result = await deleteKey(vault, "proj", "nonexistent.env", "KEY");
     expect(result).toBeNull();
   });
 
   test("returns repo unchanged for nonexistent key", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
-    const result = await deleteKey(vault, "proj", envPath, "MISSING");
+    await setupRepo("proj", "KEY=val\n");
+    const result = await deleteKey(vault, "proj", ".env", "MISSING");
     // Key still exists (filter just didn't match anything)
     expect(result?.envFiles[0].keys.length).toBe(1);
   });
@@ -275,12 +282,12 @@ describe("deleteKey", () => {
 
 describe("addKey", () => {
   test("adds a new key to the vault", async () => {
-    const { envPath } = setupRepo("proj", "EXISTING=val\n");
+    await setupRepo("proj", "EXISTING=val\n");
 
     const result = await addKey(
       vault,
       "proj",
-      envPath,
+      ".env",
       "NEW_KEY",
       "new_val",
       "",
@@ -293,9 +300,9 @@ describe("addKey", () => {
   });
 
   test("writes the new key to disk", async () => {
-    const { envPath } = setupRepo("proj", "EXISTING=val\n");
+    const { envPath } = await setupRepo("proj", "EXISTING=val\n");
 
-    await addKey(vault, "proj", envPath, "NEW_KEY", "new_val", "");
+    await addKey(vault, "proj", ".env", "NEW_KEY", "new_val", "");
 
     const onDisk = readFileSync(envPath, "utf-8");
     expect(onDisk).toContain("EXISTING=val");
@@ -303,42 +310,42 @@ describe("addKey", () => {
   });
 
   test("sets addedAt to today", async () => {
-    const { envPath } = setupRepo("proj", "A=1\n");
+    await setupRepo("proj", "A=1\n");
 
-    const result = await addKey(vault, "proj", envPath, "B", "2", "");
+    const result = await addKey(vault, "proj", ".env", "B", "2", "");
     const key = result?.envFiles[0].keys.find((k) => k.name === "B");
     const today = new Date().toISOString().split("T")[0];
     expect(key?.addedAt).toBe(today);
   });
 
   test("sets provider when provided", async () => {
-    const { envPath } = setupRepo("proj", "A=1\n");
+    await setupRepo("proj", "A=1\n");
 
-    const result = await addKey(vault, "proj", envPath, "B", "2", "AWS");
+    const result = await addKey(vault, "proj", ".env", "B", "2", "AWS");
     const key = result?.envFiles[0].keys.find((k) => k.name === "B");
     expect(key?.provider).toBe("AWS");
   });
 
   test("rejects duplicate key name", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
+    await setupRepo("proj", "KEY=val\n");
 
-    const result = await addKey(vault, "proj", envPath, "KEY", "other", "");
+    const result = await addKey(vault, "proj", ".env", "KEY", "other", "");
     expect(result).toBeNull();
   });
 
   test("does not modify disk on duplicate rejection", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
+    const { envPath } = await setupRepo("proj", "KEY=val\n");
     const before = readFileSync(envPath, "utf-8");
 
-    await addKey(vault, "proj", envPath, "KEY", "other", "");
+    await addKey(vault, "proj", ".env", "KEY", "other", "");
 
     const after = readFileSync(envPath, "utf-8");
     expect(after).toBe(before);
   });
 
   test("persists through vault reopen", async () => {
-    const { envPath } = setupRepo("proj", "A=1\n");
-    await addKey(vault, "proj", envPath, "B", "2", "Stripe");
+    await setupRepo("proj", "A=1\n");
+    await addKey(vault, "proj", ".env", "B", "2", "Stripe");
 
     const v2 = new VaultManager();
     await v2.openVault(vaultFile, "test-password");
@@ -349,16 +356,16 @@ describe("addKey", () => {
   });
 
   test("returns null for nonexistent repo", async () => {
-    const result = await addKey(vault, "nope", "/fake/.env", "K", "v", "");
+    const result = await addKey(vault, "nope", ".env", "K", "v", "");
     expect(result).toBeNull();
   });
 
   test("returns null for nonexistent env file path", async () => {
-    setupRepo("proj", "KEY=val\n");
+    await setupRepo("proj", "KEY=val\n");
     const result = await addKey(
       vault,
       "proj",
-      "/nonexistent/.env",
+      "nonexistent.env",
       "NEW",
       "v",
       "",
@@ -367,9 +374,9 @@ describe("addKey", () => {
   });
 
   test("preserves existing keys on disk", async () => {
-    const { envPath } = setupRepo("proj", "A=1\nB=2\n");
+    const { envPath } = await setupRepo("proj", "A=1\nB=2\n");
 
-    await addKey(vault, "proj", envPath, "C", "3", "");
+    await addKey(vault, "proj", ".env", "C", "3", "");
 
     const onDisk = readFileSync(envPath, "utf-8");
     expect(onDisk).toContain("A=1");
@@ -384,7 +391,7 @@ describe("addKey", () => {
 
 describe("removeRepo", () => {
   test("removes the repo from the vault", async () => {
-    setupRepo("proj", "KEY=val\n");
+    await setupRepo("proj", "KEY=val\n");
 
     const result = await removeRepo(vault, "proj");
     expect(result).toBe(true);
@@ -397,7 +404,7 @@ describe("removeRepo", () => {
   });
 
   test("persists through vault reopen", async () => {
-    setupRepo("proj", "KEY=val\n");
+    await setupRepo("proj", "KEY=val\n");
     await removeRepo(vault, "proj");
 
     const v2 = new VaultManager();
@@ -406,8 +413,8 @@ describe("removeRepo", () => {
   });
 
   test("does not affect other repos", async () => {
-    setupRepo("a", "KEY=1\n");
-    setupRepo("b", "KEY=2\n");
+    await setupRepo("a", "KEY=1\n");
+    await setupRepo("b", "KEY=2\n");
 
     await removeRepo(vault, "a");
     expect(vault.getDB().get("a")).toBeNull();
@@ -421,11 +428,11 @@ describe("removeRepo", () => {
 
 describe("importFile", () => {
   test("updates vault keys from disk content", async () => {
-    const { envPath } = setupRepo("proj", "KEY=old\n");
+    const { envPath } = await setupRepo("proj", "KEY=old\n");
     // Change the file on disk
     writeFileSync(envPath, "KEY=new\nEXTRA=added\n", "utf-8");
 
-    const result = await importFile(vault, "proj", envPath);
+    const result = await importFile(vault, "proj", ".env");
     expect(result).not.toBeNull();
     expect(result?.envFiles[0].keys.length).toBe(2);
     expect(result?.envFiles[0].keys.find((k) => k.name === "KEY")?.value).toBe(
@@ -437,26 +444,26 @@ describe("importFile", () => {
   });
 
   test("updates rawContent from disk", async () => {
-    const { envPath } = setupRepo("proj", "KEY=old\n");
+    const { envPath } = await setupRepo("proj", "KEY=old\n");
     const newContent = "KEY=new\nEXTRA=added\n";
     writeFileSync(envPath, newContent, "utf-8");
 
-    const result = await importFile(vault, "proj", envPath);
+    const result = await importFile(vault, "proj", ".env");
     expect(result?.envFiles[0].rawContent).toBe(newContent);
   });
 
   test("sets syncStatus to synced", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
-    vault.getDB().updateSyncStatus("proj", envPath, "disk_changed");
+    await setupRepo("proj", "KEY=val\n");
+    vault.getDB().updateSyncStatus("proj", ".env", "disk_changed");
 
-    const result = await importFile(vault, "proj", envPath);
+    const result = await importFile(vault, "proj", ".env");
     expect(result?.envFiles[0].syncStatus).toBe("synced");
   });
 
   test("persists through vault reopen", async () => {
-    const { envPath } = setupRepo("proj", "KEY=old\n");
+    const { envPath } = await setupRepo("proj", "KEY=old\n");
     writeFileSync(envPath, "KEY=imported\n", "utf-8");
-    await importFile(vault, "proj", envPath);
+    await importFile(vault, "proj", ".env");
 
     const v2 = new VaultManager();
     await v2.openVault(vaultFile, "test-password");
@@ -465,21 +472,21 @@ describe("importFile", () => {
   });
 
   test("returns null for nonexistent repo", async () => {
-    const result = await importFile(vault, "nope", "/fake/.env");
+    const result = await importFile(vault, "nope", ".env");
     expect(result).toBeNull();
   });
 
   test("returns null for nonexistent env file path", async () => {
-    setupRepo("proj", "KEY=val\n");
-    const result = await importFile(vault, "proj", "/nonexistent/.env");
+    await setupRepo("proj", "KEY=val\n");
+    const result = await importFile(vault, "proj", "nonexistent.env");
     expect(result).toBeNull();
   });
 
   test("returns null when disk file is missing", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
+    const { envPath } = await setupRepo("proj", "KEY=val\n");
     rmSync(envPath);
 
-    const result = await importFile(vault, "proj", envPath);
+    const result = await importFile(vault, "proj", ".env");
     expect(result).toBeNull();
   });
 });
@@ -490,28 +497,28 @@ describe("importFile", () => {
 
 describe("restoreFile", () => {
   test("writes vault content to disk", async () => {
-    const { envPath } = setupRepo("proj", "KEY=vault_value\n");
+    const { envPath } = await setupRepo("proj", "KEY=vault_value\n");
     // Simulate disk divergence
     writeFileSync(envPath, "KEY=disk_value\n", "utf-8");
 
-    await restoreFile(vault, "proj", envPath);
+    await restoreFile(vault, "proj", ".env");
 
     const onDisk = readFileSync(envPath, "utf-8");
     expect(onDisk).toContain("KEY=vault_value");
   });
 
   test("sets syncStatus to synced", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
-    vault.getDB().updateSyncStatus("proj", envPath, "disk_changed");
+    await setupRepo("proj", "KEY=val\n");
+    vault.getDB().updateSyncStatus("proj", ".env", "disk_changed");
 
-    const result = await restoreFile(vault, "proj", envPath);
+    const result = await restoreFile(vault, "proj", ".env");
     expect(result?.envFiles[0].syncStatus).toBe("synced");
   });
 
   test("persists through vault reopen", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
-    vault.getDB().updateSyncStatus("proj", envPath, "disk_changed");
-    await restoreFile(vault, "proj", envPath);
+    await setupRepo("proj", "KEY=val\n");
+    vault.getDB().updateSyncStatus("proj", ".env", "disk_changed");
+    await restoreFile(vault, "proj", ".env");
 
     const v2 = new VaultManager();
     await v2.openVault(vaultFile, "test-password");
@@ -519,43 +526,43 @@ describe("restoreFile", () => {
   });
 
   test("returns null for nonexistent repo", async () => {
-    const result = await restoreFile(vault, "nope", "/fake/.env");
+    const result = await restoreFile(vault, "nope", ".env");
     expect(result).toBeNull();
   });
 
   test("returns null for nonexistent env file path", async () => {
-    setupRepo("proj", "KEY=val\n");
-    const result = await restoreFile(vault, "proj", "/nonexistent/.env");
+    await setupRepo("proj", "KEY=val\n");
+    const result = await restoreFile(vault, "proj", "nonexistent.env");
     expect(result).toBeNull();
   });
 
   test("returns null when disk write fails", async () => {
     const projectDir = nextDir();
     mkdirSync(projectDir, { recursive: true });
-    // Use a path where the parent directory doesn't exist
-    const badPath = join(projectDir, "nonexistent-subdir", "deep", ".env");
+    // Use a relative path where the parent directory doesn't exist
+    const badRelative = join("nonexistent-subdir", "deep", ".env");
     vault.getDB().add({
       name: "bad-write",
-      path: projectDir,
       envFiles: [
         {
           filename: ".env",
-          absolutePath: badPath,
+          relativePath: badRelative,
           rawContent: "KEY=val\n",
           keys: [{ name: "KEY", value: "val" }],
           syncStatus: "disk_changed",
         },
       ],
     });
+    await setRepoRoot(vaultFile, "bad-write", projectDir);
 
-    const result = await restoreFile(vault, "bad-write", badPath);
+    const result = await restoreFile(vault, "bad-write", badRelative);
     expect(result).toBeNull();
   });
 
   test("does not modify other env files", async () => {
-    const { envPath } = setupRepo("proj", "A=1\n");
+    const { projectDir, envPath } = await setupRepo("proj", "A=1\n");
     // Add a second env file
-    const envPath2 = join(envPath.replace(".env", ""), "..", ".env.production");
+    const envPath2 = join(projectDir, ".env.production");
     writeFileSync(envPath2, "B=2\n", "utf-8");
     const repo = vault.getDB().get("proj");
     if (!repo) {
@@ -563,7 +570,7 @@ describe("restoreFile", () => {
     }
     repo.envFiles.push({
       filename: ".env.production",
-      absolutePath: envPath2,
+      relativePath: ".env.production",
       rawContent: "B=2\n",
       keys: [{ name: "B", value: "2" }],
       syncStatus: "synced",
@@ -571,7 +578,7 @@ describe("restoreFile", () => {
 
     // Change first file on disk then restore it
     writeFileSync(envPath, "A=changed\n", "utf-8");
-    await restoreFile(vault, "proj", envPath);
+    await restoreFile(vault, "proj", ".env");
 
     // Second file unchanged
     const onDisk2 = readFileSync(envPath2, "utf-8");
@@ -585,44 +592,44 @@ describe("restoreFile", () => {
 
 describe("operations on locked vault", () => {
   test("editKey returns null when vault is locked", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
+    await setupRepo("proj", "KEY=val\n");
     vault.lock();
-    const result = await editKey(vault, "proj", envPath, "KEY", "new", "");
+    const result = await editKey(vault, "proj", ".env", "KEY", "new", "");
     expect(result).toBeNull();
   });
 
   test("deleteKey returns null when vault is locked", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
+    await setupRepo("proj", "KEY=val\n");
     vault.lock();
-    const result = await deleteKey(vault, "proj", envPath, "KEY");
+    const result = await deleteKey(vault, "proj", ".env", "KEY");
     expect(result).toBeNull();
   });
 
   test("addKey returns null when vault is locked", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
+    await setupRepo("proj", "KEY=val\n");
     vault.lock();
-    const result = await addKey(vault, "proj", envPath, "NEW", "val", "");
+    const result = await addKey(vault, "proj", ".env", "NEW", "val", "");
     expect(result).toBeNull();
   });
 
   test("removeRepo returns false when vault is locked", async () => {
-    setupRepo("proj", "KEY=val\n");
+    await setupRepo("proj", "KEY=val\n");
     vault.lock();
     const result = await removeRepo(vault, "proj");
     expect(result).toBe(false);
   });
 
   test("importFile returns null when vault is locked", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
+    await setupRepo("proj", "KEY=val\n");
     vault.lock();
-    const result = await importFile(vault, "proj", envPath);
+    const result = await importFile(vault, "proj", ".env");
     expect(result).toBeNull();
   });
 
   test("restoreFile returns null when vault is locked", async () => {
-    const { envPath } = setupRepo("proj", "KEY=val\n");
+    await setupRepo("proj", "KEY=val\n");
     vault.lock();
-    const result = await restoreFile(vault, "proj", envPath);
+    const result = await restoreFile(vault, "proj", ".env");
     expect(result).toBeNull();
   });
 });
