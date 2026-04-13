@@ -181,10 +181,6 @@ export function linkRepo(
   return rpcCall((r) => r.request.linkRepo({ repoName, rootPath }), null);
 }
 
-export function unlinkRepo(repoName: string): Promise<boolean> {
-  return rpcCall((r) => r.request.unlinkRepo({ repoName }), false);
-}
-
 export function pickRepoFolder(): Promise<string | null> {
   return rpcCall((r) => r.request.pickRepoFolder({}), null);
 }

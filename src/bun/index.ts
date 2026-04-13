@@ -312,19 +312,6 @@ const rpc = BrowserView.defineRPC<DotlockRPC>({
         return toRepoView(repo);
       },
 
-      unlinkRepo: async ({ repoName }) => {
-        if (vault.getState() !== "unlocked") {
-          return false;
-        }
-        const vaultPath = vault.getVaultPath();
-        if (!vaultPath) {
-          return false;
-        }
-        await removeRepoRoot(vaultPath, repoName);
-        fileWatcher.unwatchRepo(repoName);
-        return true;
-      },
-
       pickRepoFolder: async () => {
         const paths = await Utils.openFileDialog({
           startingFolder: "~/",

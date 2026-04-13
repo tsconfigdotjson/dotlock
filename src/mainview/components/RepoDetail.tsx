@@ -403,21 +403,17 @@ function DeleteRepoModal({
 // ---------------------------------------------------------------------------
 
 /**
- * Inline strip showing where the repo is linked on disk, plus actions to
- * change the folder or unlink. Rendered below the header on linked repos.
+ * Inline strip showing where the repo is linked on disk, with an action to
+ * re-point at a different folder. Rendered below the header on linked repos.
  */
 function LocationStrip({ repo }: { repo: RepoView }) {
-  const { locateRepo, unlinkRepo } = useRepos();
+  const { locateRepo } = useRepos();
   if (!repo.rootPath) {
     return null;
   }
 
   const handleChange = () => {
     void locateRepo(repo.name);
-  };
-
-  const handleUnlink = () => {
-    void unlinkRepo(repo.name);
   };
 
   return (
@@ -441,14 +437,6 @@ function LocationStrip({ repo }: { repo: RepoView }) {
       >
         <FolderSearchIcon size={11} />
         Change
-      </button>
-      <button
-        type="button"
-        onClick={handleUnlink}
-        className="px-2 py-1 rounded text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-colors"
-        title="Remove the local folder mapping (repo stays in the vault)"
-      >
-        Unlink
       </button>
     </div>
   );

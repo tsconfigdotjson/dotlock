@@ -125,7 +125,6 @@ export type DotlockRPC = {
         params: { repoName: string; rootPath: string };
         response: RepoView | null;
       };
-      unlinkRepo: { params: { repoName: string }; response: boolean };
       pickRepoFolder: {
         params: Record<string, never>;
         response: string | null;
